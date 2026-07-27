@@ -3,6 +3,8 @@ package cmd
 import (
 	"flag"
 	"fmt"
+
+	"wfn/webfunction"
 )
 
 func init() {
@@ -66,9 +68,20 @@ func (c *CodegenCommand) Run(args []string) error {
 		return fmt.Errorf("invalid --target %q, must be one of: %v", *target, validTargets)
 	}
 
-	// TODO: actually fetch the Package manifest from *url and generate code
-	// for *target, writing the result to *output. Not yet implemented.
-	fmt.Printf("wfn codegen: not yet implemented (target=%s url=%s output=%s)\n", *target, *url, *output)
+	pkg, err := webfunction.FetchPackage(*url)
+	if err != nil {
+		return fmt.Errorf("fetching package: %w", err)
+	}
+
+	name := pkg.Name
+	if name == "" {
+		name = "(unnamed package)"
+	}
+	fmt.Printf("Fetched %s (%d endpoint(s)) from %s\n", name, len(pkg.Endpoints), *url)
+
+	// TODO: generate code for *target from pkg, writing the result to
+	// *output. Not yet implemented - only the JS target is planned so far.
+	fmt.Printf("wfn codegen: code generation not yet implemented (target=%s output=%s)\n", *target, *output)
 	return nil
 }
 
