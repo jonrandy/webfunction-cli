@@ -3,7 +3,9 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"os"
 
+	"wfn/jsgen"
 	"wfn/webfunction"
 )
 
@@ -79,9 +81,23 @@ func (c *CodegenCommand) Run(args []string) error {
 	}
 	fmt.Printf("Fetched %s (%d endpoint(s)) from %s\n", name, len(pkg.Endpoints), *url)
 
-	// TODO: generate code for *target from pkg, writing the result to
-	// *output. Not yet implemented - only the JS target is planned so far.
-	fmt.Printf("wfn codegen: code generation not yet implemented (target=%s output=%s)\n", *target, *output)
+	var source string
+	switch *target {
+	case "js":
+		source, err = jsgen.Generate(pkg, *url)
+		if err != nil {
+			return fmt.Errorf("generating js: %w", err)
+		}
+	default:
+		// TODO: implement the remaining targets (java, go, php, csharp).
+		fmt.Printf("wfn codegen: target %q not yet implemented\n", *target)
+		return nil
+	}
+
+	if err := os.WriteFile(*output, []byte(source), 0o644); err != nil {
+		return fmt.Errorf("writing %s: %w", *output, err)
+	}
+	fmt.Printf("Wrote %s\n", *output)
 	return nil
 }
 
