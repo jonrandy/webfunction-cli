@@ -1,33 +1,82 @@
 package cmd
 
-import "fmt"
+import (
+	"flag"
+	"fmt"
+)
 
 func init() {
 	Register(&CodegenCommand{})
 }
 
+// validTargets is the set of languages codegen currently knows how to
+// generate. Keep this in sync with whatever the generator actually
+// implements.
+var validTargets = []string{"java", "go", "php", "js", "csharp"}
+
 // CodegenCommand implements "wfn codegen ...".
-//
-// TODO: this is a stub. Real behaviour (fetching a webfunction Package
-// manifest and generating a client, presumably) to be filled in once the
-// spec for this command is decided.
 type CodegenCommand struct{}
 
 func (c *CodegenCommand) Name() string { return "codegen" }
 
 func (c *CodegenCommand) Summary() string {
-	return "Generate code from a webfunction package (not yet implemented)"
+	return "Generate code from a webfunction package"
 }
 
 func (c *CodegenCommand) Usage() string {
-	return `wfn codegen [arguments]
+	return `wfn codegen --target <language> --url <url> -o <file>
 
-Generates code from a webfunction package.
+Generates a client for a webfunction package in the given target language.
 
-This command is not yet implemented.`
+Flags (all required):
+  --target   Target language. One of: ` + fmt.Sprint(validTargets) + `
+  --url      URL of the webfunction package to generate a client for
+  -o         Output file to write the generated code to
+
+Example:
+  wfn codegen --target java --url https://example.com/some-package -o client.java`
 }
 
 func (c *CodegenCommand) Run(args []string) error {
-	fmt.Println("wfn codegen: not yet implemented")
+	fs := flag.NewFlagSet(c.Name(), flag.ContinueOnError)
+
+	target := fs.String("target", "", "target language ("+fmt.Sprint(validTargets)+")")
+	url := fs.String("url", "", "URL of the webfunction package")
+	output := fs.String("o", "", "output file name")
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	var missing []string
+	if *target == "" {
+		missing = append(missing, "--target")
+	}
+	if *url == "" {
+		missing = append(missing, "--url")
+	}
+	if *output == "" {
+		missing = append(missing, "-o")
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("missing required flag(s): %v\n\n%s", missing, c.Usage())
+	}
+
+	if !isValidTarget(*target) {
+		return fmt.Errorf("invalid --target %q, must be one of: %v", *target, validTargets)
+	}
+
+	// TODO: actually fetch the Package manifest from *url and generate code
+	// for *target, writing the result to *output. Not yet implemented.
+	fmt.Printf("wfn codegen: not yet implemented (target=%s url=%s output=%s)\n", *target, *url, *output)
 	return nil
+}
+
+func isValidTarget(target string) bool {
+	for _, t := range validTargets {
+		if t == target {
+			return true
+		}
+	}
+	return false
 }
