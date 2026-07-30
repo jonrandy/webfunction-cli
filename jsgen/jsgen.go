@@ -82,6 +82,7 @@ func writeHeader(b *strings.Builder, pkg *webfunction.Package, sourceURL string)
 		b.WriteString("// Package: " + pkg.Name + "\n")
 	}
 	b.WriteString("// Source:  " + sourceURL + "\n\n")
+	b.WriteString("// IMPORTANT - Remember to import 'webfunction' into your project - npm i webfunction\n\n")
 	b.WriteString(fmt.Sprintf("import { Client } from %s;\n\n", jsStringLiteral(ImportSpecifier)))
 }
 
