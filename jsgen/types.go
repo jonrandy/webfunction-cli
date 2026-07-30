@@ -1,7 +1,6 @@
 package jsgen
 
 import (
-	"sort"
 	"strings"
 
 	"wfn/webfunction"
@@ -24,9 +23,9 @@ func jsdocBaseType(t string) string {
 	case "object":
 		return "Object"
 	case "array":
-		return "Array"
+		return "Array<any>"
 	default:
-		return "*"
+		return "any"
 	}
 }
 
@@ -85,18 +84,6 @@ func dedupe(ss []string) []string {
 		}
 	}
 	return out
-}
-
-// attributeSignature builds a canonical string describing the shape of an
-// attribute list, order-independent, so identical shapes appearing on
-// different endpoints can share one typedef.
-func attributeSignature(attrs []webfunction.Attribute) string {
-	parts := make([]string, len(attrs))
-	for i, a := range attrs {
-		parts[i] = a.Name + ":" + a.Type.String() + ":" + boolStr(a.Nullable())
-	}
-	sort.Strings(parts)
-	return strings.Join(parts, "|")
 }
 
 func boolStr(b bool) string {

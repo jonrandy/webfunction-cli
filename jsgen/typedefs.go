@@ -2,22 +2,82 @@ package jsgen
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"wfn/webfunction"
 )
 
-// typedef is one generated JSDoc @typedef, shared by every endpoint whose
-// object return shape matches it exactly.
-type typedef struct {
-	name       string
-	attributes []webfunction.Attribute
+// field is a generic name/type/docs tuple, used to build a typedef from
+// either an endpoint's Attributes (return shape) or its Arguments (call
+// shape). optional and nullable are deliberately separate: optional means
+// the property may be absent entirely (JSDoc "[name]" bracket syntax) -
+// true for a non-required Argument; nullable means the property is always
+// present but its value may be null (part of the type union, e.g.
+// "string|null") - true for an Attribute with the "nullable" flag.
+// Conflating the two would make a nullable-but-always-present return
+// field look absent to a type checker, which it isn't.
+type field struct {
+	name     string
+	jsonType webfunction.JSONType
+	optional bool
+	nullable bool
+	docs     string
 }
 
-// typedefSet builds the set of typedefs needed for a package's endpoints,
-// and a lookup from endpoint name to the typedef name that describes its
-// return shape (only present for endpoints that return an object with a
-// known attribute list).
+func attributeFields(attrs []webfunction.Attribute) []field {
+	fields := make([]field, len(attrs))
+	for i, a := range attrs {
+		docs := withNotes(a.Docs, hintNote(a.Hints), choicesNote(a.Values))
+		fields[i] = field{name: a.Name, jsonType: a.Type, nullable: a.Nullable(), docs: docs}
+	}
+	return fields
+}
+
+func argumentFields(args []webfunction.Argument) []field {
+	fields := make([]field, len(args))
+	for i, a := range args {
+		docs := withNotes(a.Docs, hintNote(a.Hints), choicesNote(a.Choices))
+		fields[i] = field{name: a.Name, jsonType: a.Type, optional: !a.Required(), docs: docs}
+	}
+	return fields
+}
+
+// withNotes appends any non-empty parenthetical notes to a docs string.
+func withNotes(docs string, notes ...string) string {
+	docs = strings.TrimSpace(docs)
+	for _, n := range notes {
+		if n == "" {
+			continue
+		}
+		if docs == "" {
+			docs = n
+		} else {
+			docs = docs + " " + n
+		}
+	}
+	return docs
+}
+
+func fieldSignature(fields []field) string {
+	parts := make([]string, len(fields))
+	for i, f := range fields {
+		parts[i] = f.name + ":" + f.jsonType.String() + ":" + boolStr(f.optional) + ":" + boolStr(f.nullable)
+	}
+	sort.Strings(parts)
+	return strings.Join(parts, "|")
+}
+
+// typedef is one generated JSDoc @typedef. lines holds each already-
+// rendered "@property ..." (or similar) line, without the leading " * ".
+type typedef struct {
+	name  string
+	lines []string
+}
+
+// typedefSet builds and dedupes the set of typedefs needed for a package:
+// endpoint return shapes, endpoint argument shapes, and (once those are
+// known) a composite client typedef describing every method.
 type typedefSet struct {
 	ordered []*typedef
 	bySig   map[string]*typedef
@@ -31,22 +91,47 @@ func newTypedefSet() *typedefSet {
 	}
 }
 
-// forEndpoint returns the typedef name for the endpoint's return shape,
-// creating a new typedef if no existing one has an identical shape, or ""
-// if the endpoint doesn't return a documented object shape.
-func (s *typedefSet) forEndpoint(ep webfunction.Endpoint) string {
-	if !contains(ep.Returns, "object") || len(ep.Attributes) == 0 {
+// forFields returns the typedef name describing this exact set of fields,
+// creating a new typedef if no existing one has an identical shape.
+// Returns "" if fields is empty (nothing to describe).
+func (s *typedefSet) forFields(baseName string, fields []field) string {
+	if len(fields) == 0 {
 		return ""
 	}
 
-	sig := attributeSignature(ep.Attributes)
+	sig := fieldSignature(fields)
 	if existing, ok := s.bySig[sig]; ok {
 		return existing.name
 	}
 
-	name := s.uniqueName(pascalCase(ep.Name) + "Result")
-	td := &typedef{name: name, attributes: ep.Attributes}
+	lines := make([]string, len(fields))
+	for i, f := range fields {
+		typ := jsdocType(f.jsonType, "", f.nullable)
+		name := f.name
+		if f.optional {
+			name = "[" + name + "]"
+		}
+		line := "@property {" + typ + "} " + name
+		if f.docs != "" {
+			line += " - " + strings.ReplaceAll(strings.TrimSpace(f.docs), "\n", " ")
+		}
+		lines[i] = line
+	}
+
+	name := s.uniqueName(baseName)
+	td := &typedef{name: name, lines: lines}
 	s.bySig[sig] = td
+	s.ordered = append(s.ordered, td)
+	return name
+}
+
+// addComposite adds a typedef built from already-rendered lines (e.g. the
+// client-shape typedef, whose function-type properties don't fit the
+// simple field model above). Unlike forFields, this is never deduped
+// against an existing typedef - it always creates a new one.
+func (s *typedefSet) addComposite(baseName string, lines []string) string {
+	name := s.uniqueName(baseName)
+	td := &typedef{name: name, lines: lines}
 	s.ordered = append(s.ordered, td)
 	return name
 }
@@ -60,7 +145,8 @@ func (s *typedefSet) uniqueName(base string) string {
 	return name
 }
 
-// render writes out every collected typedef as a JSDoc block.
+// render writes out every collected typedef as a JSDoc block, in the order
+// they were created.
 func (s *typedefSet) render() string {
 	if len(s.ordered) == 0 {
 		return ""
@@ -70,13 +156,8 @@ func (s *typedefSet) render() string {
 	for _, td := range s.ordered {
 		b.WriteString("/**\n")
 		b.WriteString(" * @typedef {Object} " + td.name + "\n")
-		for _, attr := range td.attributes {
-			typ := jsdocType(attr.Type, "", attr.Nullable())
-			line := " * @property {" + typ + "} " + attr.Name
-			if attr.Docs != "" {
-				line += " - " + strings.ReplaceAll(strings.TrimSpace(attr.Docs), "\n", " ")
-			}
-			b.WriteString(line + "\n")
+		for _, line := range td.lines {
+			b.WriteString(" * " + line + "\n")
 		}
 		b.WriteString(" */\n\n")
 	}

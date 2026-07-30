@@ -9,47 +9,94 @@ import (
 )
 
 // ImportSpecifier is the module specifier the generated file imports
+// { Client } from - the npm package name, once webfunction-js is
+// published.
 const ImportSpecifier = "webfunction"
 
-// Generate turns a fetched Package into the source of a JS module: it
-// builds a Client against sourceURL, wraps it with a named method per
-// endpoint (plus the underlying client's own package/call surface), and
-// exports the wrapper as `client`.
+// endpointTypedefs holds the typedef names (if any) describing an
+// endpoint's argument shape and return shape.
+type endpointTypedefs struct {
+	args    string
+	returns string
+}
+
+// Generate turns a fetched Package into the source of a JS module. It
+// exports an async createClient(options) factory: options are passed
+// straight through to Client.fromPackageEndpoint (e.g. { bearerAuth,
+// version }), and the resolved client is wrapped with a named method per
+// endpoint, plus the underlying client's own package/call surface.
+//
+// Every method's argument and return shape gets its own JSDoc @typedef
+// (deduped across endpoints with identical shapes), and createClient's own
+// @returns points at a composite typedef listing every method - so editors
+// get full intellisense on both the call args and the result, not just a
+// generic Object.
 func Generate(pkg *webfunction.Package, sourceURL string) (string, error) {
 	var b strings.Builder
 
 	writeHeader(&b, pkg, sourceURL)
 
 	typedefs := newTypedefSet()
-	// Pre-compute typedefs for every visible endpoint first, so the
-	// typedef block above the methods is complete before any method
-	// references one.
-	endpointTypedef := make(map[string]string, len(pkg.Endpoints))
-	for _, ep := range visibleEndpoints(pkg) {
-		endpointTypedef[ep.Name] = typedefs.forEndpoint(ep)
+	endpoints := visibleEndpoints(pkg)
+
+	// Pre-compute every endpoint's arg/return typedefs first, so the
+	// typedef block above the factory is complete before anything
+	// references one - including the composite client typedef below.
+	perEndpoint := make(map[string]endpointTypedefs, len(endpoints))
+	for _, ep := range endpoints {
+		perEndpoint[ep.Name] = endpointTypedefs{
+			args:    typedefs.forFields(pascalCase(ep.Name)+"Args", argumentFields(ep.Arguments)),
+			returns: forEndpointReturn(typedefs, ep),
+		}
 	}
+
+	clientTypedef := buildClientTypedef(typedefs, pkg, endpoints, perEndpoint)
+
 	b.WriteString(typedefs.render())
 
-	b.WriteString(fmt.Sprintf("const rawClient = await Client.fromPackageEndpoint(%s);\n\n", jsStringLiteral(sourceURL)))
-
-	methodNames := make(map[string]bool, len(pkg.Endpoints))
-	for k := range jsReserved {
-		methodNames[k] = true
-	}
-
-	b.WriteString("export const client = {\n")
-	b.WriteString("  package: rawClient.package,\n")
-	b.WriteString("  call: (name, args) => rawClient.call(name, args),\n")
-
-	for _, ep := range visibleEndpoints(pkg) {
-		methodName := uniqueMethodName(methodNames, camelCase(ep.Name))
-		b.WriteString("\n")
-		writeMethod(&b, ep, methodName, endpointTypedef[ep.Name])
-	}
-
-	b.WriteString("};\n")
+	writeFactory(&b, pkg, sourceURL, endpoints, perEndpoint, clientTypedef)
 
 	return b.String(), nil
+}
+
+// forEndpointReturn returns the typedef name for the endpoint's return
+// shape, or "" if it doesn't return a documented object shape.
+func forEndpointReturn(typedefs *typedefSet, ep webfunction.Endpoint) string {
+	if !contains(ep.Returns, "object") {
+		return ""
+	}
+	return typedefs.forFields(pascalCase(ep.Name)+"Result", attributeFields(ep.Attributes))
+}
+
+// buildClientTypedef adds the composite typedef describing everything
+// createClient's returned object has: the passthrough package/call
+// properties, plus one function-typed property per endpoint method.
+func buildClientTypedef(typedefs *typedefSet, pkg *webfunction.Package, endpoints []webfunction.Endpoint, perEndpoint map[string]endpointTypedefs) string {
+	methodNames := reservedNames()
+
+	lines := []string{
+		"@property {Object} package",
+		"@property {(name: string, args?: any) => Promise<any>} call",
+	}
+
+	for _, ep := range endpoints {
+		methodName := uniqueMethodName(methodNames, camelCase(ep.Name))
+		td := perEndpoint[ep.Name]
+
+		argType := "any"
+		if td.args != "" {
+			argType = td.args
+		}
+		retType := returnType(ep, td.returns)
+
+		lines = append(lines, fmt.Sprintf("@property {(args: %s) => Promise<%s>} %s", argType, retType, methodName))
+	}
+
+	base := "Client"
+	if pkg.Name != "" {
+		base = pascalCase(pkg.Name) + "Client"
+	}
+	return typedefs.addComposite(base, lines)
 }
 
 // visibleEndpoints returns the package's endpoints in their original
@@ -64,6 +111,17 @@ func visibleEndpoints(pkg *webfunction.Package) []webfunction.Endpoint {
 		out = append(out, ep)
 	}
 	return out
+}
+
+// reservedNames seeds a method-name set with the wrapper's own passthrough
+// properties and JS reserved words, so endpoint methods can't collide with
+// them.
+func reservedNames() map[string]bool {
+	names := make(map[string]bool, len(jsReserved))
+	for k := range jsReserved {
+		names[k] = true
+	}
+	return names
 }
 
 func uniqueMethodName(used map[string]bool, base string) string {
@@ -82,67 +140,71 @@ func writeHeader(b *strings.Builder, pkg *webfunction.Package, sourceURL string)
 		b.WriteString("// Package: " + pkg.Name + "\n")
 	}
 	b.WriteString("// Source:  " + sourceURL + "\n\n")
-	b.WriteString("// IMPORTANT - Remember to import '" + ImportSpecifier + "' into your project - npm i " + ImportSpecifier +"\n\n")
+	b.WriteString("// IMPORTANT - Remember to import '" + ImportSpecifier + "' into your project - npm i " + ImportSpecifier + "\n\n")
 	b.WriteString(fmt.Sprintf("import { Client } from %s;\n\n", jsStringLiteral(ImportSpecifier)))
 }
 
-func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName, objectTypedef string) {
-	b.WriteString("  /**\n")
+// writeFactory writes the exported async createClient(options) function:
+// it builds the underlying dynamic client (forwarding options, e.g.
+// bearerAuth/version, straight to Client.fromPackageEndpoint) and returns
+// the wrapper object, typed as clientTypedef.
+func writeFactory(b *strings.Builder, pkg *webfunction.Package, sourceURL string, endpoints []webfunction.Endpoint, perEndpoint map[string]endpointTypedefs, clientTypedef string) {
+	b.WriteString("/**\n")
+	b.WriteString(" * Builds a wrapped client for this package.\n")
+	b.WriteString(" *\n")
+	b.WriteString(" * @param {Object} [options]\n")
+	b.WriteString(" * @param {string} [options.bearerAuth] - Sent as `Authorization: Bearer <token>` on every call.\n")
+	b.WriteString(" * @param {string} [options.version] - Sent as the `Api-Version` header.\n")
+	b.WriteString(" * @returns {Promise<" + clientTypedef + ">}\n")
+	b.WriteString(" */\n")
+	b.WriteString("export async function createClient(options = {}) {\n")
+	b.WriteString(fmt.Sprintf("  const rawClient = await Client.fromPackageEndpoint(%s, options);\n\n", jsStringLiteral(sourceURL)))
+
+	methodNames := reservedNames()
+
+	b.WriteString("  return {\n")
+	b.WriteString("    package: rawClient.package,\n")
+	b.WriteString("    call: (name, args) => rawClient.call(name, args),\n")
+
+	for _, ep := range endpoints {
+		methodName := uniqueMethodName(methodNames, camelCase(ep.Name))
+		b.WriteString("\n")
+		writeMethod(b, ep, methodName, perEndpoint[ep.Name])
+	}
+
+	b.WriteString("  };\n")
+	b.WriteString("}\n")
+}
+
+func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string, td endpointTypedefs) {
+	b.WriteString("    /**\n")
 
 	for _, line := range docLines(ep.Docs) {
 		if line == "" {
-			b.WriteString("   *\n")
+			b.WriteString("     *\n")
 			continue
 		}
-		b.WriteString("   * " + line + "\n")
+		b.WriteString("     * " + line + "\n")
 	}
-	if ep.Docs != "" && len(ep.Arguments) > 0 {
-		b.WriteString("   *\n")
-	}
-
-	if len(ep.Arguments) > 0 {
-		b.WriteString("   * @param {Object} args\n")
-		for _, arg := range ep.Arguments {
-			writeArgDoc(b, arg)
-		}
+	if ep.Docs != "" && td.args != "" {
+		b.WriteString("     *\n")
 	}
 
-	b.WriteString("   * @returns {Promise<" + returnType(ep, objectTypedef) + ">}\n")
-	b.WriteString("   */\n")
-	b.WriteString(fmt.Sprintf("  %s(args) {\n", methodName))
-	b.WriteString(fmt.Sprintf("    return rawClient.call(%s, args);\n", jsStringLiteral(ep.Name)))
-	b.WriteString("  },\n")
-}
-
-func writeArgDoc(b *strings.Builder, arg webfunction.Argument) {
-	typ := jsdocType(arg.Type, "", false)
-
-	name := "args." + arg.Name
-	if !arg.Required() {
-		name = "[" + name + "]"
+	if td.args != "" {
+		b.WriteString("     * @param {" + td.args + "} args\n")
 	}
 
-	line := "   * @param {" + typ + "} " + name
-
-	desc := strings.TrimSpace(strings.ReplaceAll(arg.Docs, "\n", " "))
-	note := hintNote(arg.Hints)
-	switch {
-	case desc != "" && note != "":
-		line += " - " + desc + " " + note
-	case desc != "":
-		line += " - " + desc
-	case note != "":
-		line += " - " + note
-	}
-
-	if len(arg.Choices) > 0 {
-		line += " " + choicesNote(arg.Choices)
-	}
-
-	b.WriteString(line + "\n")
+	b.WriteString("     * @returns {Promise<" + returnType(ep, td.returns) + ">}\n")
+	b.WriteString("     */\n")
+	b.WriteString(fmt.Sprintf("    %s(args) {\n", methodName))
+	b.WriteString(fmt.Sprintf("      return rawClient.call(%s, args);\n", jsStringLiteral(ep.Name)))
+	b.WriteString("    },\n")
 }
 
 func choicesNote(choices []interface{}) string {
+	if len(choices) == 0 {
+		return ""
+	}
 	strs := make([]string, len(choices))
 	for i, c := range choices {
 		strs[i] = fmt.Sprintf("%v", c)
