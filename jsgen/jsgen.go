@@ -9,9 +9,7 @@ import (
 )
 
 // ImportSpecifier is the module specifier the generated file imports
-// { Client } from. Hardcoded for now, per project convention, since
-// webfunction-js isn't published to npm yet.
-const ImportSpecifier = "webfunction/webfunction.js"
+const ImportSpecifier = "webfunction"
 
 // Generate turns a fetched Package into the source of a JS module: it
 // builds a Client against sourceURL, wraps it with a named method per
