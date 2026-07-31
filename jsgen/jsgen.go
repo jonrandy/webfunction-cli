@@ -83,13 +83,16 @@ func buildClientTypedef(typedefs *typedefSet, pkg *webfunction.Package, endpoint
 		methodName := uniqueMethodName(methodNames, camelCase(ep.Name))
 		td := perEndpoint[ep.Name]
 
-		argType := "any"
-		if td.args != "" {
-			argType = td.args
-		}
 		retType := returnType(ep, td.returns)
 
-		lines = append(lines, fmt.Sprintf("@property {(args: %s) => Promise<%s>} %s", argType, retType, methodName))
+		var argSig string
+		if td.args != "" {
+			argSig = "args: " + td.args
+		} else {
+			argSig = "args?: any"
+		}
+
+		lines = append(lines, fmt.Sprintf("@property {(%s) => Promise<%s>} %s", argSig, retType, methodName))
 	}
 
 	base := "Client"
@@ -186,12 +189,14 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 		}
 		b.WriteString("     * " + line + "\n")
 	}
-	if ep.Docs != "" && td.args != "" {
+	if ep.Docs != "" {
 		b.WriteString("     *\n")
 	}
 
 	if td.args != "" {
 		b.WriteString("     * @param {" + td.args + "} args\n")
+	} else {
+		b.WriteString("     * @param {any} [args]\n")
 	}
 
 	b.WriteString("     * @returns {Promise<" + returnType(ep, td.returns) + ">}\n")
