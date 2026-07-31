@@ -8,52 +8,6 @@
 // to callers - so keep the exported surface here narrow and stable.
 package webfunction
 
-import (
-	"encoding/json"
-	"fmt"
-	"strings"
-)
-
-// JSONType represents the "type" field on an Argument or Attribute.
-//
-// The wire spec (https://webfunction.org/package) documents this field as a
-// single string, but real packages have been observed sending it as a JSON
-// array of strings (a union of types), the same way endpoint.returns
-// already works. JSONType accepts either shape on the wire and normalizes
-// to a []string internally.
-type JSONType []string
-
-// UnmarshalJSON accepts either a JSON string or a JSON array of strings.
-func (t *JSONType) UnmarshalJSON(data []byte) error {
-	var s string
-	if err := json.Unmarshal(data, &s); err == nil {
-		*t = JSONType{s}
-		return nil
-	}
-
-	var arr []string
-	if err := json.Unmarshal(data, &arr); err != nil {
-		return fmt.Errorf("type must be a string or an array of strings: %w", err)
-	}
-	*t = JSONType(arr)
-	return nil
-}
-
-// MarshalJSON writes back out as a plain string when there's exactly one
-// type, or an array otherwise - so round-tripping doesn't force everything
-// into array form.
-func (t JSONType) MarshalJSON() ([]byte, error) {
-	if len(t) == 1 {
-		return json.Marshal(t[0])
-	}
-	return json.Marshal([]string(t))
-}
-
-// String joins multiple types with "|", e.g. "string|null".
-func (t JSONType) String() string {
-	return strings.Join(t, "|")
-}
-
 // Package is the top-level Web Function package definition.
 // See https://webfunction.org/package#package-definition.
 type Package struct {
@@ -68,6 +22,7 @@ type Package struct {
 	Endpoints      []Endpoint `json:"endpoints"`
 	Events         []Event    `json:"events,omitempty"`
 	Errors         []ErrorDef `json:"errors,omitempty"`
+	Objects        []Object   `json:"objects,omitempty"`
 }
 
 // Versioned reports whether the package declares the "versioned" flag.
@@ -75,12 +30,22 @@ func (p *Package) Versioned() bool {
 	return hasFlag(p.Flags, "versioned")
 }
 
+// Object returns the named object definition, or nil if the package has
+// none by that name.
+func (p *Package) Object(name string) *Object {
+	for i := range p.Objects {
+		if p.Objects[i].Name == name {
+			return &p.Objects[i]
+		}
+	}
+	return nil
+}
+
 // Endpoint describes a single callable endpoint within a package.
 // See https://webfunction.org/package#endpoint-definition.
 type Endpoint struct {
 	Name       string      `json:"name"`
-	Returns    []string    `json:"returns"`
-	Hints      []string    `json:"hints,omitempty"`
+	Returns    Type        `json:"returns"`
 	Flags      []string    `json:"flags,omitempty"`
 	Group      string      `json:"group,omitempty"`
 	Docs       string      `json:"docs,omitempty"`
@@ -111,8 +76,7 @@ func (e *Endpoint) Argument(name string) *Argument {
 // See https://webfunction.org/package#argument-definition.
 type Argument struct {
 	Name    string        `json:"name"`
-	Type    JSONType      `json:"type"`
-	Hints   []string      `json:"hints,omitempty"`
+	Type    Type          `json:"type"`
 	Group   string        `json:"group,omitempty"`
 	Choices []interface{} `json:"choices,omitempty"`
 	Flags   []string      `json:"flags,omitempty"`
@@ -129,14 +93,17 @@ func (a *Argument) Required() bool {
 // See https://webfunction.org/package#attribute-definition.
 type Attribute struct {
 	Name   string        `json:"name"`
-	Type   JSONType      `json:"type"`
-	Hints  []string      `json:"hints,omitempty"`
+	Type   Type          `json:"type"`
 	Values []interface{} `json:"values,omitempty"`
 	Flags  []string      `json:"flags,omitempty"`
 	Docs   string        `json:"docs,omitempty"`
 }
 
 // Nullable reports whether the attribute declares the "nullable" flag.
+//
+// Per spec this means more than just "the value may be null": the key MAY
+// be absent from the object entirely, and when present its value MAY be
+// null. Consumers SHOULD treat a missing key and a null value equivalently.
 func (a *Attribute) Nullable() bool {
 	return hasFlag(a.Flags, "nullable")
 }
