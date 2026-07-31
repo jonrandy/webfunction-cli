@@ -36,7 +36,7 @@ func Generate(pkg *webfunction.Package, sourceURL string) (string, error) {
 
 	writeHeader(&b, pkg, sourceURL)
 
-	typedefs := newTypedefSet()
+	typedefs := newTypedefSet(pkg)
 	endpoints := visibleEndpoints(pkg)
 
 	// Pre-compute every endpoint's arg/return typedefs first, so the
@@ -45,7 +45,7 @@ func Generate(pkg *webfunction.Package, sourceURL string) (string, error) {
 	perEndpoint := make(map[string]endpointTypedefs, len(endpoints))
 	for _, ep := range endpoints {
 		perEndpoint[ep.Name] = endpointTypedefs{
-			args:    typedefs.forFields(pascalCase(ep.Name)+"Args", argumentFields(ep.Arguments)),
+			args:    typedefs.forFields(pascalCase(ep.Name)+"Args", argumentFields(ep.Arguments), "argument"),
 			returns: forEndpointReturn(typedefs, ep),
 		}
 	}
@@ -54,18 +54,19 @@ func Generate(pkg *webfunction.Package, sourceURL string) (string, error) {
 
 	b.WriteString(typedefs.render())
 
-	writeFactory(&b, pkg, sourceURL, endpoints, perEndpoint, clientTypedef)
+	writeFactory(&b, pkg, sourceURL, endpoints, perEndpoint, clientTypedef, typedefs)
 
 	return b.String(), nil
 }
 
 // forEndpointReturn returns the typedef name for the endpoint's return
-// shape, or "" if it doesn't return a documented object shape.
+// shape, or "" if it doesn't return a documented object shape. An
+// endpoint's returns are always resolved in "attribute" context per spec.
 func forEndpointReturn(typedefs *typedefSet, ep webfunction.Endpoint) string {
-	if !contains(ep.Returns, "object") {
+	if !ep.Returns.HasBase("object") {
 		return ""
 	}
-	return typedefs.forFields(pascalCase(ep.Name)+"Result", attributeFields(ep.Attributes))
+	return typedefs.forFields(pascalCase(ep.Name)+"Result", attributeFields(ep.Attributes), "attribute")
 }
 
 // buildClientTypedef adds the composite typedef describing everything
@@ -83,7 +84,7 @@ func buildClientTypedef(typedefs *typedefSet, pkg *webfunction.Package, endpoint
 		methodName := uniqueMethodName(methodNames, camelCase(ep.Name))
 		td := perEndpoint[ep.Name]
 
-		retType := returnType(ep, td.returns)
+		retType := returnType(typedefs, ep, td.returns)
 
 		var argSig string
 		if td.args != "" {
@@ -151,7 +152,7 @@ func writeHeader(b *strings.Builder, pkg *webfunction.Package, sourceURL string)
 // it builds the underlying dynamic client (forwarding options, e.g.
 // bearerAuth/version, straight to Client.fromPackageEndpoint) and returns
 // the wrapper object, typed as clientTypedef.
-func writeFactory(b *strings.Builder, pkg *webfunction.Package, sourceURL string, endpoints []webfunction.Endpoint, perEndpoint map[string]endpointTypedefs, clientTypedef string) {
+func writeFactory(b *strings.Builder, pkg *webfunction.Package, sourceURL string, endpoints []webfunction.Endpoint, perEndpoint map[string]endpointTypedefs, clientTypedef string, typedefs *typedefSet) {
 	b.WriteString("/**\n")
 	b.WriteString(" * Builds a wrapped client for this package.\n")
 	b.WriteString(" *\n")
@@ -172,14 +173,14 @@ func writeFactory(b *strings.Builder, pkg *webfunction.Package, sourceURL string
 	for _, ep := range endpoints {
 		methodName := uniqueMethodName(methodNames, camelCase(ep.Name))
 		b.WriteString("\n")
-		writeMethod(b, ep, methodName, perEndpoint[ep.Name])
+		writeMethod(b, ep, methodName, perEndpoint[ep.Name], typedefs)
 	}
 
 	b.WriteString("  };\n")
 	b.WriteString("}\n")
 }
 
-func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string, td endpointTypedefs) {
+func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string, td endpointTypedefs, typedefs *typedefSet) {
 	b.WriteString("    /**\n")
 
 	for _, line := range docLines(ep.Docs) {
@@ -199,7 +200,7 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 		b.WriteString("     * @param {any} [args]\n")
 	}
 
-	b.WriteString("     * @returns {Promise<" + returnType(ep, td.returns) + ">}\n")
+	b.WriteString("     * @returns {Promise<" + returnType(typedefs, ep, td.returns) + ">}\n")
 	b.WriteString("     */\n")
 	b.WriteString(fmt.Sprintf("    %s(args) {\n", methodName))
 	b.WriteString(fmt.Sprintf("      return rawClient.call(%s, args);\n", jsStringLiteral(ep.Name)))
@@ -218,8 +219,9 @@ func choicesNote(choices []interface{}) string {
 	return "(one of: " + strings.Join(strs, ", ") + ")"
 }
 
-func returnType(ep webfunction.Endpoint, objectTypedef string) string {
-	return jsdocType(webfunction.JSONType(ep.Returns), objectTypedef, false)
+func returnType(typedefs *typedefSet, ep webfunction.Endpoint, objectTypedef string) string {
+	resolve := func(refName string) string { return typedefs.resolveObjectTypedef(refName, "attribute") }
+	return jsdocType(ep.Returns, objectTypedef, false, resolve)
 }
 
 // jsStringLiteral renders a Go string as a single-quoted JS string literal.

@@ -6,44 +6,48 @@ import (
 	"wfn/webfunction"
 )
 
-// jsdocBaseType maps a single wire base type to its JSDoc equivalent.
-// "object" and "array" are handled by the caller, since "object" may need
-// to resolve to a typedef name and "array" has no documented element type
-// in the wire spec to draw on.
-func jsdocBaseType(t string) string {
-	switch t {
-	case "string":
-		return "string"
-	case "number":
-		return "number"
-	case "boolean":
-		return "boolean"
-	case "null":
-		return "null"
+// objectResolver looks up (creating if needed) the typedef name for a
+// referenced object.<name>, given the name that followed "object.".
+type objectResolver func(refName string) string
+
+// jsdocAlt maps a single type alternative to its JSDoc equivalent.
+// localObjectTypedef is used for a bare "object" alternative that isn't a
+// named reference (i.e. the endpoint's own inline return shape); resolve
+// is used for an actual object.<name> reference.
+func jsdocAlt(alt webfunction.TypeAlt, localObjectTypedef string, resolve objectResolver) string {
+	switch alt.Base {
 	case "object":
+		if alt.IsObjectRef() && resolve != nil {
+			return resolve(alt.Refinement)
+		}
+		if localObjectTypedef != "" {
+			return localObjectTypedef
+		}
 		return "Object"
 	case "array":
+		if alt.Of != nil {
+			return "Array<" + jsdocType(*alt.Of, "", false, resolve) + ">"
+		}
 		return "Array<any>"
-	default:
+	case "string", "number", "boolean", "null":
+		return alt.Base
+	default: // "any", or anything unrecognized
 		return "any"
 	}
 }
 
 // jsdocType builds the JSDoc type string for an Argument or Attribute's
-// JSONType, given the typedef name to use for an "object" entry (or "" if
-// there's no known shape for it) and whether the value may be null
-// (attributes only - the "nullable" flag).
-func jsdocType(types webfunction.JSONType, objectTypedef string, nullable bool) string {
-	parts := make([]string, 0, len(types)+1)
-	for _, t := range types {
-		if t == "object" && objectTypedef != "" {
-			parts = append(parts, objectTypedef)
-			continue
-		}
-		parts = append(parts, jsdocBaseType(t))
+// Type, given the typedef name to use for a bare "object" entry (or "" if
+// there's no known shape for it), whether the value may additionally be
+// null on top of whatever the type itself says, and a resolver for any
+// object.<name> references encountered.
+func jsdocType(t webfunction.Type, localObjectTypedef string, forceNullable bool, resolve objectResolver) string {
+	parts := make([]string, 0, len(t.Union)+1)
+	for _, alt := range t.Union {
+		parts = append(parts, jsdocAlt(alt, localObjectTypedef, resolve))
 	}
 
-	if nullable && !contains(types, "null") {
+	if forceNullable && !t.HasBase("null") {
 		parts = append(parts, "null")
 	}
 
@@ -55,23 +59,22 @@ func jsdocType(types webfunction.JSONType, objectTypedef string, nullable bool) 
 	return "(" + strings.Join(parts, "|") + ")"
 }
 
-// hintNote turns a hint list into a short parenthetical note to append to a
-// docs description, e.g. "(email format)". Returns "" if there are no
-// hints worth noting.
-func hintNote(hints []string) string {
-	if len(hints) == 0 {
-		return ""
-	}
-	return "(" + strings.Join(hints, ", ") + " format)"
-}
-
-func contains(ss []string, want string) bool {
-	for _, s := range ss {
-		if s == want {
-			return true
+// refinementNote turns any dotted refinements in a type (e.g. "email" in
+// "string.email") into a short parenthetical note to append to a docs
+// description, e.g. "(email format)". Object refinements (object.<name>,
+// a type reference rather than a format constraint) are excluded. Returns
+// "" if there's nothing worth noting.
+func refinementNote(t webfunction.Type) string {
+	var notes []string
+	for _, alt := range t.Union {
+		if alt.Refinement != "" && alt.Base != "object" {
+			notes = append(notes, alt.Refinement)
 		}
 	}
-	return false
+	if len(notes) == 0 {
+		return ""
+	}
+	return "(" + strings.Join(notes, ", ") + " format)"
 }
 
 func dedupe(ss []string) []string {
