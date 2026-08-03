@@ -13,11 +13,11 @@ import (
 // published.
 const ImportSpecifier = "webfunction"
 
-// endpointTypedefs holds the typedef names (if any) describing an
-// endpoint's argument shape and return shape.
+// endpointTypedefs holds the typedef(s) (if any) describing an endpoint's
+// argument shape and return shape.
 type endpointTypedefs struct {
 	args    string
-	returns string
+	returns localTypedefs
 }
 
 // Generate turns a fetched Package into the source of a JS module. It
@@ -59,14 +59,33 @@ func Generate(pkg *webfunction.Package, sourceURL string) (string, error) {
 	return b.String(), nil
 }
 
-// forEndpointReturn returns the typedef name for the endpoint's return
-// shape, or "" if it doesn't return a documented object shape. An
-// endpoint's returns are always resolved in "attribute" context per spec.
-func forEndpointReturn(typedefs *typedefSet, ep webfunction.Endpoint) string {
-	if !ep.Returns.HasBase("object") {
-		return ""
+// forEndpointReturn builds typedefs describing the endpoint's own inline
+// return shape from its attributes - not a named object.<name> ref, which
+// resolves separately in returnType. Per spec, attributes describes the
+// object itself when returns is (or includes) bare "object". When returns
+// is instead a bare, untyped "array", the same attributes are - in every
+// real-world package seen so far - describing each item's shape, so
+// that's honored here too even though the spec's letter doesn't say so
+// explicitly. Returns the zero value if there's nothing to build (no
+// attributes, or returns doesn't match either shape).
+func forEndpointReturn(typedefs *typedefSet, ep webfunction.Endpoint) localTypedefs {
+	if len(ep.Attributes) == 0 {
+		return localTypedefs{}
 	}
-	return typedefs.forFields(pascalCase(ep.Name)+"Result", attributeFields(ep.Attributes), "attribute")
+
+	name := typedefs.forFields(pascalCase(ep.Name)+"Result", attributeFields(ep.Attributes), "attribute")
+	if name == "" {
+		return localTypedefs{}
+	}
+
+	switch {
+	case ep.Returns.HasBase("object"):
+		return localTypedefs{object: name}
+	case ep.Returns.HasBareArray():
+		return localTypedefs{arrayOfItem: name}
+	default:
+		return localTypedefs{}
+	}
 }
 
 // buildClientTypedef adds the composite typedef describing everything
@@ -219,9 +238,9 @@ func choicesNote(choices []interface{}) string {
 	return "(one of: " + strings.Join(strs, ", ") + ")"
 }
 
-func returnType(typedefs *typedefSet, ep webfunction.Endpoint, objectTypedef string) string {
+func returnType(typedefs *typedefSet, ep webfunction.Endpoint, local localTypedefs) string {
 	resolve := func(refName string) string { return typedefs.resolveObjectTypedef(refName, "attribute") }
-	return jsdocType(ep.Returns, objectTypedef, false, resolve)
+	return jsdocType(ep.Returns, local, false, resolve)
 }
 
 // jsStringLiteral renders a Go string as a single-quoted JS string literal.

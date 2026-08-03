@@ -174,7 +174,7 @@ func (s *typedefSet) renderFieldLines(fields []field, context string) []string {
 
 	lines := make([]string, len(fields))
 	for i, f := range fields {
-		typ := jsdocType(f.jsonType, "", f.nullable, resolve)
+		typ := jsdocType(f.jsonType, localTypedefs{}, f.nullable, resolve)
 		name := f.name
 		if f.optional {
 			name = "[" + name + "]"

@@ -67,6 +67,18 @@ func (t Type) HasBase(base string) bool {
 	return false
 }
 
+// HasBareArray reports whether the union includes an "array" alternative
+// with no nested element type (i.e. array of any, at the wire level) -
+// distinct from HasBase("array"), which also matches a typed array.
+func (t Type) HasBareArray() bool {
+	for _, alt := range t.Union {
+		if alt.Base == "array" && alt.Of == nil {
+			return true
+		}
+	}
+	return false
+}
+
 // ObjectNames returns the names of every object definition referenced
 // anywhere within this type, including inside array element types -
 // mirroring webfunction-php's Type::objects().

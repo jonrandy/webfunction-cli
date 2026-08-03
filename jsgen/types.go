@@ -10,23 +10,38 @@ import (
 // referenced object.<name>, given the name that followed "object.".
 type objectResolver func(refName string) string
 
+// localTypedefs holds typedefs derived from an endpoint's own inline
+// attributes (as opposed to a named object.<name> reference, which
+// resolves separately via objectResolver). Per spec, an endpoint's
+// `attributes` describes the shape of its `returns` when that's the bare
+// `object` type. In practice, packages also use it to describe each
+// item's shape when `returns` is a bare, untyped `array` - the spec's
+// letter doesn't cover that case, but it's what the attributes are
+// clearly there for, so it's honored here too.
+type localTypedefs struct {
+	object      string // shape of a bare "object" return
+	arrayOfItem string // shape of each item in a bare "array" return
+}
+
 // jsdocAlt maps a single type alternative to its JSDoc equivalent.
-// localObjectTypedef is used for a bare "object" alternative that isn't a
-// named reference (i.e. the endpoint's own inline return shape); resolve
-// is used for an actual object.<name> reference.
-func jsdocAlt(alt webfunction.TypeAlt, localObjectTypedef string, resolve objectResolver) string {
+// local supplies typedefs for the endpoint's own inline shapes (see
+// localTypedefs); resolve is used for an actual object.<name> reference.
+func jsdocAlt(alt webfunction.TypeAlt, local localTypedefs, resolve objectResolver) string {
 	switch alt.Base {
 	case "object":
 		if alt.IsObjectRef() && resolve != nil {
 			return resolve(alt.Refinement)
 		}
-		if localObjectTypedef != "" {
-			return localObjectTypedef
+		if local.object != "" {
+			return local.object
 		}
 		return "Object"
 	case "array":
 		if alt.Of != nil {
-			return "Array<" + jsdocType(*alt.Of, "", false, resolve) + ">"
+			return "Array<" + jsdocType(*alt.Of, localTypedefs{}, false, resolve) + ">"
+		}
+		if local.arrayOfItem != "" {
+			return "Array<" + local.arrayOfItem + ">"
 		}
 		return "Array<any>"
 	case "string", "number", "boolean", "null":
@@ -37,14 +52,15 @@ func jsdocAlt(alt webfunction.TypeAlt, localObjectTypedef string, resolve object
 }
 
 // jsdocType builds the JSDoc type string for an Argument or Attribute's
-// Type, given the typedef name to use for a bare "object" entry (or "" if
-// there's no known shape for it), whether the value may additionally be
-// null on top of whatever the type itself says, and a resolver for any
+// Type, given typedefs for the endpoint's own inline shapes (see
+// localTypedefs; pass the zero value when there are none, e.g. when
+// rendering a typedef's own fields), whether the value may additionally
+// be null on top of whatever the type itself says, and a resolver for any
 // object.<name> references encountered.
-func jsdocType(t webfunction.Type, localObjectTypedef string, forceNullable bool, resolve objectResolver) string {
+func jsdocType(t webfunction.Type, local localTypedefs, forceNullable bool, resolve objectResolver) string {
 	parts := make([]string, 0, len(t.Union)+1)
 	for _, alt := range t.Union {
-		parts = append(parts, jsdocAlt(alt, localObjectTypedef, resolve))
+		parts = append(parts, jsdocAlt(alt, local, resolve))
 	}
 
 	if forceNullable && !t.HasBase("null") {
