@@ -61,9 +61,12 @@ func withNotes(docs string, notes ...string) string {
 
 // typedef is one generated JSDoc @typedef. lines holds each already-
 // rendered "@property ..." (or similar) line, without the leading " * ".
+// template is non-empty only for a generic typedef (currently just Page),
+// giving the @template parameter name(s) to emit above @typedef.
 type typedef struct {
-	name  string
-	lines []string
+	name     string
+	lines    []string
+	template string
 }
 
 // typedefSet builds and dedupes the set of typedefs needed for a package:
@@ -82,6 +85,10 @@ type typedefSet struct {
 	// different member set). This also guards against infinite recursion
 	// on self-referential objects.
 	objects map[string]string
+	// pageTypedefName caches the name of the generic Page<T> typedef,
+	// once emitted (see ensurePageTypedef) - added at most once per file
+	// regardless of how many paginated endpoints need it.
+	pageTypedefName string
 }
 
 func newTypedefSet(pkg *webfunction.Package) *typedefSet {
@@ -177,6 +184,28 @@ func (s *typedefSet) renderFieldLines(fields []field, context string) []string {
 	return lines
 }
 
+// ensurePageTypedef returns the name of the generic Page<T> typedef,
+// creating it the first time it's needed. Used for a paginated endpoint
+// whose own attributes describe each item (rather than the previous/page/
+// next envelope itself, which some packages document directly instead -
+// see forEndpointReturn), so the real return shape - the standard
+// {previous, page: Array<T>, next} envelope - isn't spelled out anywhere
+// in that endpoint's own definition and has to be synthesized.
+func (s *typedefSet) ensurePageTypedef() string {
+	if s.pageTypedefName != "" {
+		return s.pageTypedefName
+	}
+
+	lines := []string{
+		"@property {Object|null} previous - Pagination cursor for the previous page, or null if there isn't one.",
+		"@property {Array<T>} page - The items in this page.",
+		"@property {Object|null} next - Pagination cursor for the next page, or null if there isn't one.",
+	}
+	s.pageTypedefName = s.uniqueName("Page")
+	s.ordered = append(s.ordered, &typedef{name: s.pageTypedefName, lines: lines, template: "T"})
+	return s.pageTypedefName
+}
+
 // addComposite adds a typedef built from already-rendered lines (e.g. the
 // client-shape typedef, whose function-type properties don't fit the
 // simple field model above). Unlike forFields, this is never deduped
@@ -207,6 +236,9 @@ func (s *typedefSet) render() string {
 	var b strings.Builder
 	for _, td := range s.ordered {
 		b.WriteString("/**\n")
+		if td.template != "" {
+			b.WriteString(" * @template " + td.template + "\n")
+		}
 		b.WriteString(" * @typedef {Object} " + td.name + "\n")
 		for _, line := range td.lines {
 			b.WriteString(" * " + line + "\n")

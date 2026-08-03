@@ -62,15 +62,35 @@ func Generate(pkg *webfunction.Package, sourceURL string) (string, error) {
 // forEndpointReturn builds typedefs describing the endpoint's own inline
 // return shape from its attributes - not a named object.<name> ref, which
 // resolves separately in returnType. Per spec, attributes describes the
-// object itself when returns is (or includes) bare "object". When returns
-// is instead a bare, untyped "array", the same attributes are - in every
-// real-world package seen so far - describing each item's shape, so
-// that's honored here too even though the spec's letter doesn't say so
-// explicitly. Returns the zero value if there's nothing to build (no
-// attributes, or returns doesn't match either shape).
+// object itself when returns is (or includes) bare "object". In practice,
+// this covers two different real conventions seen for `paginated`
+// endpoints specifically:
+//
+//   - Some document the {previous, page, next} envelope directly as their
+//     own attributes (a literal "page" field among them) - nothing special
+//     to do, attributes already describe the whole return shape.
+//   - Others document only the per-item fields (no "page" attribute) and
+//     leave the standard paginated envelope unstated - the real return is
+//     still {previous, page: Array<Item>, next}, so that's synthesized
+//     here via the generic Page<T> typedef.
+//
+// Outside the paginated case, a bare, untyped "array" return with
+// attributes is - in every real-world package seen so far - describing
+// each item's shape too, so that's honored as well even though the spec's
+// letter only defines attributes for the bare "object" case. Returns the
+// zero value if there's nothing to build.
 func forEndpointReturn(typedefs *typedefSet, ep webfunction.Endpoint) localTypedefs {
 	if len(ep.Attributes) == 0 {
 		return localTypedefs{}
+	}
+
+	if ep.HasFlag("paginated") && ep.Returns.HasBase("object") && !hasAttributeNamed(ep.Attributes, "page") {
+		itemName := typedefs.forFields(pascalCase(ep.Name)+"Result", attributeFields(ep.Attributes), "attribute")
+		if itemName == "" {
+			return localTypedefs{}
+		}
+		pageTypedef := typedefs.ensurePageTypedef()
+		return localTypedefs{object: pageTypedef + "<" + itemName + ">"}
 	}
 
 	name := typedefs.forFields(pascalCase(ep.Name)+"Result", attributeFields(ep.Attributes), "attribute")
@@ -86,6 +106,15 @@ func forEndpointReturn(typedefs *typedefSet, ep webfunction.Endpoint) localTyped
 	default:
 		return localTypedefs{}
 	}
+}
+
+func hasAttributeNamed(attrs []webfunction.Attribute, name string) bool {
+	for _, a := range attrs {
+		if a.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 // buildClientTypedef adds the composite typedef describing everything
