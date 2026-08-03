@@ -2,7 +2,6 @@ package jsgen
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
 	"wfn/webfunction"
@@ -60,15 +59,6 @@ func withNotes(docs string, notes ...string) string {
 	return docs
 }
 
-func fieldSignature(fields []field) string {
-	parts := make([]string, len(fields))
-	for i, f := range fields {
-		parts[i] = f.name + ":" + f.jsonType.String() + ":" + boolStr(f.optional) + ":" + boolStr(f.nullable)
-	}
-	sort.Strings(parts)
-	return strings.Join(parts, "|")
-}
-
 // typedef is one generated JSDoc @typedef. lines holds each already-
 // rendered "@property ..." (or similar) line, without the leading " * ".
 type typedef struct {
@@ -103,26 +93,25 @@ func newTypedefSet(pkg *webfunction.Package) *typedefSet {
 	}
 }
 
-// forFields returns the typedef name describing this exact set of fields,
-// creating a new typedef if no existing one has an identical shape.
-// Returns "" if fields is empty (nothing to describe). context ("argument"
-// or "attribute") determines which member set is used to resolve any
-// object.<name> references found within the fields' types.
+// forFields builds a typedef describing this set of fields and returns its
+// name, or "" if fields is empty (nothing to describe). context
+// ("argument" or "attribute") determines which member set is used to
+// resolve any object.<name> references found within the fields' types.
+//
+// Unlike resolveObjectTypedef, this never dedupes by shape: baseName ties
+// the typedef to a specific endpoint (e.g. "FilterContactsResult"), and
+// two different endpoints coincidentally returning identically-shaped data
+// are not the same concept - giving them the same typedef name would be
+// actively misleading, even though the types would be structurally
+// interchangeable.
 func (s *typedefSet) forFields(baseName string, fields []field, context string) string {
 	if len(fields) == 0 {
 		return ""
 	}
 
-	sig := fieldSignature(fields)
-	if existing, ok := s.bySig[sig]; ok {
-		return existing.name
-	}
-
-	lines := s.renderFieldLines(fields, context)
 	name := s.uniqueName(baseName)
-	td := &typedef{name: name, lines: lines}
-	s.bySig[sig] = td
-	s.ordered = append(s.ordered, td)
+	lines := s.renderFieldLines(fields, context)
+	s.ordered = append(s.ordered, &typedef{name: name, lines: lines})
 	return name
 }
 
