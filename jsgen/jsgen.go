@@ -2,7 +2,6 @@ package jsgen
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
 	"wfn/webfunction"
@@ -231,21 +230,12 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 	b.WriteString("    },\n")
 }
 
-func choicesNote(choices []interface{}) string {
-	if len(choices) == 0 {
-		return ""
-	}
-	strs := make([]string, len(choices))
-	for i, c := range choices {
-		strs[i] = fmt.Sprintf("%v", c)
-	}
-	sort.Strings(strs)
-	return "(one of: " + strings.Join(strs, ", ") + ")"
-}
-
 func returnType(typedefs *typedefSet, ep webfunction.Endpoint, local localTypedefs) string {
 	resolve := func(refName string) string { return typedefs.resolveObjectTypedef(refName, "attribute") }
-	return jsdocType(ep.Returns, local, false, resolve)
+	// An endpoint's Returns type has no "choices"/"values" concept of its
+	// own in the spec (that lives on individual Arguments/Attributes), so
+	// nil is passed here.
+	return jsdocType(ep.Returns, local, false, resolve, nil)
 }
 
 // jsStringLiteral renders a Go string as a single-quoted JS string literal.

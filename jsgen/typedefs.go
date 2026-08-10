@@ -17,19 +17,26 @@ import (
 // when present, its value MAY be null - so attributeFields sets both.
 // Argument's "required" flag only ever controls optional (arguments have
 // no separate null concept in the spec).
+//
+// choices carries an Attribute's "values" or an Argument's "choices" - a
+// closed set of legal values per spec. When present, the rendered type is
+// a JSDoc literal union of the exact values (e.g. ("active"|"pending"))
+// instead of the bare base type, so editors/tsc can catch a typo or an
+// out-of-set value at the call site - not just document it in prose.
 type field struct {
 	name     string
 	jsonType webfunction.Type
 	optional bool
 	nullable bool
 	docs     string
+	choices  []interface{}
 }
 
 func attributeFields(attrs []webfunction.Attribute) []field {
 	fields := make([]field, len(attrs))
 	for i, a := range attrs {
-		docs := withNotes(a.Docs, refinementNote(a.Type), choicesNote(a.Values))
-		fields[i] = field{name: a.Name, jsonType: a.Type, optional: a.Nullable(), nullable: a.Nullable(), docs: docs}
+		docs := withNotes(a.Docs, refinementNote(a.Type))
+		fields[i] = field{name: a.Name, jsonType: a.Type, optional: a.Nullable(), nullable: a.Nullable(), docs: docs, choices: a.Values}
 	}
 	return fields
 }
@@ -37,8 +44,8 @@ func attributeFields(attrs []webfunction.Attribute) []field {
 func argumentFields(args []webfunction.Argument) []field {
 	fields := make([]field, len(args))
 	for i, a := range args {
-		docs := withNotes(a.Docs, refinementNote(a.Type), choicesNote(a.Choices))
-		fields[i] = field{name: a.Name, jsonType: a.Type, optional: !a.Required(), docs: docs}
+		docs := withNotes(a.Docs, refinementNote(a.Type))
+		fields[i] = field{name: a.Name, jsonType: a.Type, optional: !a.Required(), docs: docs, choices: a.Choices}
 	}
 	return fields
 }
@@ -160,7 +167,7 @@ func (s *typedefSet) renderFieldLines(fields []field, context string) []string {
 
 	lines := make([]string, len(fields))
 	for i, f := range fields {
-		typ := jsdocType(f.jsonType, localTypedefs{}, f.nullable, resolve)
+		typ := jsdocType(f.jsonType, localTypedefs{}, f.nullable, resolve, f.choices)
 		name := f.name
 		if f.optional {
 			name = "[" + name + "]"
