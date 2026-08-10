@@ -116,7 +116,18 @@ func buildClientTypedef(typedefs *typedefSet, pkg *webfunction.Package, endpoint
 			argSig = "args?: any"
 		}
 
-		lines = append(lines, fmt.Sprintf("@property {(%s) => Promise<%s>} %s", argSig, retType, methodName))
+		line := fmt.Sprintf("@property {(%s) => Promise<%s>} %s", argSig, retType, methodName)
+		if docs := strings.TrimSpace(ep.Docs); docs != "" {
+			// Same "@property {type} name - description" convention
+			// renderFieldLines already uses for Attribute/Argument
+			// typedefs - collapsed to one line, since that's what
+			// editors actually show on hover; a JSDoc property
+			// description can span multiple lines in the source, but
+			// there's no benefit to that here since nothing else reads
+			// this line back out.
+			line += " - " + strings.ReplaceAll(docs, "\n", " ")
+		}
+		lines = append(lines, line)
 	}
 
 	base := "Client"
