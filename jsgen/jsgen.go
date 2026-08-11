@@ -13,10 +13,15 @@ import (
 const ImportSpecifier = "webfunction"
 
 // endpointTypedefs holds the typedef(s) (if any) describing an endpoint's
-// argument shape and return shape.
+// argument shape and return shape. argsOptional is true when every field
+// in the args typedef is individually optional (or there are no
+// arguments at all) - in that case the args *parameter* itself should
+// also be optional, so a caller can omit it entirely (`client.foo()`)
+// rather than being forced to pass `{}`.
 type endpointTypedefs struct {
-	args    string
-	returns localTypedefs
+	args         string
+	argsOptional bool
+	returns      localTypedefs
 }
 
 // Generate turns a fetched Package into the source of a JS module. It
@@ -43,9 +48,11 @@ func Generate(pkg *webfunction.Package, sourceURL string) (string, error) {
 	// references one - including the composite client typedef below.
 	perEndpoint := make(map[string]endpointTypedefs, len(endpoints))
 	for _, ep := range endpoints {
+		argFields := argumentFields(ep.Arguments)
 		perEndpoint[ep.Name] = endpointTypedefs{
-			args:    typedefs.forFields(pascalCase(ep.Name)+"Args", argumentFields(ep.Arguments), "argument"),
-			returns: forEndpointReturn(typedefs, ep),
+			args:         typedefs.forFields(pascalCase(ep.Name)+"Args", argFields, "argument"),
+			argsOptional: allOptional(argFields),
+			returns:      forEndpointReturn(typedefs, ep),
 		}
 	}
 
@@ -110,10 +117,13 @@ func buildClientTypedef(typedefs *typedefSet, pkg *webfunction.Package, endpoint
 		retType := returnType(typedefs, ep, td.returns)
 
 		var argSig string
-		if td.args != "" {
-			argSig = "args: " + td.args
-		} else {
+		switch {
+		case td.args == "":
 			argSig = "args?: any"
+		case td.argsOptional:
+			argSig = "args?: " + td.args
+		default:
+			argSig = "args: " + td.args
 		}
 
 		line := fmt.Sprintf("@property {(%s) => Promise<%s>} %s", argSig, retType, methodName)
@@ -228,10 +238,13 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 		b.WriteString("     *\n")
 	}
 
-	if td.args != "" {
-		b.WriteString("     * @param {" + td.args + "} args\n")
-	} else {
+	switch {
+	case td.args == "":
 		b.WriteString("     * @param {any} [args]\n")
+	case td.argsOptional:
+		b.WriteString("     * @param {" + td.args + "} [args]\n")
+	default:
+		b.WriteString("     * @param {" + td.args + "} args\n")
 	}
 
 	b.WriteString("     * @returns {Promise<" + returnType(typedefs, ep, td.returns) + ">}\n")

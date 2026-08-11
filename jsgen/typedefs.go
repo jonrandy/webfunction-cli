@@ -50,6 +50,19 @@ func argumentFields(args []webfunction.Argument) []field {
 	return fields
 }
 
+// allOptional reports whether every field is individually optional -
+// including the trivial case of no fields at all. Used to decide whether
+// an endpoint's whole args *parameter* can also be made optional, so a
+// caller can omit it entirely instead of being forced to pass `{}`.
+func allOptional(fields []field) bool {
+	for _, f := range fields {
+		if !f.optional {
+			return false
+		}
+	}
+	return true
+}
+
 // withNotes appends any non-empty parenthetical notes to a docs string.
 func withNotes(docs string, notes ...string) string {
 	docs = strings.TrimSpace(docs)
