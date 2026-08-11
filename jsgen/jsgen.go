@@ -224,6 +224,26 @@ func writeFactory(b *strings.Builder, pkg *webfunction.Package, sourceURL string
 	b.WriteString("}\n")
 }
 
+// writeMethod writes one endpoint's method, including its JSDoc.
+//
+// @throws is scoped to this endpoint's own declared Errors only - NOT
+// merged with the package-level Errors list. Whether package-level
+// errors are meant to apply implicitly to every endpoint isn't
+// confirmed by anything read from the spec so far (compare the earlier,
+// since-corrected assumption about a "Hints" field that also turned out
+// not to exist) - so documenting them here would risk asserting codes an
+// endpoint doesn't actually raise, or missing ones it does. Revisit if
+// that scoping is ever confirmed one way or the other.
+//
+// The error class names (BadRequestError, UnexpectedStatusCodeError,
+// JsonParseError) and their meanings come from webfunction-js's own
+// README (github.com/jonrandy/webfunction-js): a failed call throws one
+// of these WfnError subclasses; BadRequestError's [code, message,
+// details] triple is the same "code" space as an endpoint's declared
+// ErrorDef.Code. Referenced via a JSDoc `import('webfunction').X` type
+// expression rather than a top-of-file import, since @throws is
+// documentation-only (tsc doesn't type-check it) and these classes
+// otherwise go unused at the value level in generated code.
 func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string, td endpointTypedefs, typedefs *typedefSet) {
 	b.WriteString("    /**\n")
 
@@ -248,6 +268,25 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 	}
 
 	b.WriteString("     * @returns {Promise<" + returnType(typedefs, ep, td.returns) + ">}\n")
+
+	for _, e := range ep.Errors {
+		code := strings.TrimSpace(e.Code)
+		if code == "" {
+			continue
+		}
+		line := "     * @throws {import('" + ImportSpecifier + "').BadRequestError} " + code
+		if docs := strings.TrimSpace(e.Docs); docs != "" {
+			line += " - " + strings.ReplaceAll(docs, "\n", " ")
+		}
+		b.WriteString(line + "\n")
+	}
+	// These two are call-agnostic - webfunction-js can raise either of
+	// them for any endpoint regardless of what error codes (if any) that
+	// endpoint itself declares, so they're always listed rather than
+	// keyed off ep.Errors.
+	b.WriteString("     * @throws {import('" + ImportSpecifier + "').UnexpectedStatusCodeError} Non-200, non-400 response.\n")
+	b.WriteString("     * @throws {import('" + ImportSpecifier + "').JsonParseError} Response body wasn't valid JSON.\n")
+
 	b.WriteString("     */\n")
 	b.WriteString(fmt.Sprintf("    %s(args) {\n", methodName))
 	b.WriteString(fmt.Sprintf("      return rawClient.call(%s, args);\n", jsStringLiteral(ep.Name)))
