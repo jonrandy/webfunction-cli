@@ -33,11 +33,24 @@ type objectResolver func(refName string) string
 // something the type system itself narrows, since nothing confirms
 // whether the real Page class is declared generic (e.g. `Page<T>`). Not
 // inventing that pending being able to check the actual class source.
+// localTypedefs holds typedefs derived from an endpoint's own inline
+// attributes (as opposed to a named object.<name> reference, which
+// resolves separately via objectResolver). Per spec, an endpoint's
+// `attributes` describes the shape of its `returns` when that's the bare
+// `object` type. In practice, packages also use it to describe each
+// item's shape when `returns` is a bare, untyped `array` - the spec's
+// letter doesn't cover that case, but it's what the attributes are
+// clearly there for, so it's honored here too.
+//
+// pageTypedef is a separate case, for paginated endpoints: the name of a
+// synthesized <Name>Page typedef (see typedefSet.addPageTypedef) that
+// describes the real webfunction-js Page instance the endpoint actually
+// returns, but with a real item type on `.page` instead of the `any` the
+// real (untyped, plain-JS) Page class itself infers to.
 type localTypedefs struct {
-	object       string // shape of a bare "object" return
-	arrayOfItem  string // shape of each item in a bare "array" return
-	paginated    bool   // true if this endpoint's return is Page instead
-	pageItemType string // JSDoc type of what `.page` holds, for docs only
+	object      string // shape of a bare "object" return
+	arrayOfItem string // shape of each item in a bare "array" return
+	pageTypedef string // name of the synthesized Page typedef, if paginated
 }
 
 // jsdocAlt maps a single type alternative to its JSDoc equivalent.

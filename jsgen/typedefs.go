@@ -204,6 +204,36 @@ func (s *typedefSet) addComposite(baseName string, lines []string) string {
 	return name
 }
 
+// addPageTypedef synthesizes a typedef describing a paginated endpoint's
+// real return value - an instance of webfunction-js's own Page class -
+// but with itemType actually filled in for `.page`, which the real class
+// can't provide on its own: it's plain JS with no JSDoc/generics at all
+// (confirmed from its real source), so `.page` infers as `any` under
+// checkJs with nothing further we can do to the real class from here.
+// Deliberately NOT deduped/shared across endpoints even when two
+// paginated endpoints happen to return the same item type, matching this
+// package's existing policy for endpoint-specific typedefs (merging by
+// coincidence was a real bug once, for Args/Result typedefs - see
+// jsdocType's docs). nextPage/previousPage are typed as returning this
+// same typedef (or null) - self-referential, matching the real class's
+// own behavior of returning another Page of the same shape, or null when
+// there's no next/previous page. map() and the Symbol.iterator protocol
+// the real class also implements aren't modeled here - out of scope for
+// what was asked; can be added if that intellisense is wanted too.
+func (s *typedefSet) addPageTypedef(baseName, itemType string) string {
+	name := s.uniqueName(baseName)
+	lines := []string{
+		fmt.Sprintf("@property {Array<%s>} page", itemType),
+		"@property {boolean} hasNext",
+		"@property {boolean} hasPrevious",
+		fmt.Sprintf("@property {() => Promise<%s|null>} nextPage", name),
+		fmt.Sprintf("@property {() => Promise<%s|null>} previousPage", name),
+	}
+	td := &typedef{name: name, lines: lines}
+	s.ordered = append(s.ordered, td)
+	return name
+}
+
 func (s *typedefSet) uniqueName(base string) string {
 	name := base
 	for i := 2; s.names[name]; i++ {

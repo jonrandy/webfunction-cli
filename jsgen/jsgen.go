@@ -76,18 +76,27 @@ func Generate(pkg *webfunction.Package, sourceURL string) (string, error) {
 //
 // Paginated endpoints are handled first and separately: the canonical
 // {previous, page, next} envelope is never turned into a typedef at all
-// (see localTypedefs) - only the "page" attribute's own type is resolved,
-// via the same object.<name> machinery any other array-of-named-object
-// field uses, purely to describe what `.page` holds in the generated docs.
+// (see localTypedefs) - instead, the "page" attribute's item type is
+// resolved (via the same object.<name> machinery any other
+// array-of-named-object field uses) and used to synthesize a dedicated
+// Page typedef via addPageTypedef, since the real Page class can't
+// provide that typing itself (see addPageTypedef's own comment).
 func forEndpointReturn(typedefs *typedefSet, ep webfunction.Endpoint) localTypedefs {
 	if ep.HasFlag("paginated") {
+		itemType := "any"
 		resolve := func(refName string) string { return typedefs.resolveObjectTypedef(refName, "attribute") }
 		for _, a := range ep.Attributes {
-			if a.Name == "page" {
-				return localTypedefs{paginated: true, pageItemType: jsdocType(a.Type, localTypedefs{}, false, resolve, nil)}
+			if a.Name != "page" {
+				continue
+			}
+			for _, alt := range a.Type.Union {
+				if alt.Base == "array" && alt.Of != nil {
+					itemType = jsdocType(*alt.Of, localTypedefs{}, false, resolve, nil)
+				}
 			}
 		}
-		return localTypedefs{paginated: true}
+		name := typedefs.addPageTypedef(pascalCase(ep.Name)+"Page", itemType)
+		return localTypedefs{pageTypedef: name}
 	}
 
 	if len(ep.Attributes) == 0 {
@@ -285,11 +294,7 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 		b.WriteString("     * @param {" + td.args + "} args\n")
 	}
 
-	returnsLine := "     * @returns {Promise<" + returnType(typedefs, ep, td.returns) + ">}"
-	if td.returns.paginated && td.returns.pageItemType != "" {
-		returnsLine += " - `.page` holds " + td.returns.pageItemType + "."
-	}
-	b.WriteString(returnsLine + "\n")
+	b.WriteString("     * @returns {Promise<" + returnType(typedefs, ep, td.returns) + ">}\n")
 
 	for _, e := range ep.Errors {
 		code := strings.TrimSpace(e.Code)
@@ -324,8 +329,8 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 }
 
 func returnType(typedefs *typedefSet, ep webfunction.Endpoint, local localTypedefs) string {
-	if local.paginated {
-		return "import('" + ImportSpecifier + "').Page"
+	if local.pageTypedef != "" {
+		return local.pageTypedef
 	}
 	resolve := func(refName string) string { return typedefs.resolveObjectTypedef(refName, "attribute") }
 	// An endpoint's Returns type has no "choices"/"values" concept of its
