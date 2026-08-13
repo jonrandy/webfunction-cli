@@ -74,12 +74,22 @@ func Generate(pkg *webfunction.Package, sourceURL string) (string, error) {
 // well even though the spec's letter only defines attributes for the bare
 // "object" case. Returns the zero value if there's nothing to build.
 //
-// Paginated endpoints need no special handling here: per the canonical
-// form, their attributes are exactly previous/page/next, with page typed
-// as an array of a named object reference - which resolves correctly
-// through the ordinary object.<name> machinery in resolveObjectTypedef,
-// the same way any other array-of-named-object field does.
+// Paginated endpoints are handled first and separately: the canonical
+// {previous, page, next} envelope is never turned into a typedef at all
+// (see localTypedefs) - only the "page" attribute's own type is resolved,
+// via the same object.<name> machinery any other array-of-named-object
+// field uses, purely to describe what `.page` holds in the generated docs.
 func forEndpointReturn(typedefs *typedefSet, ep webfunction.Endpoint) localTypedefs {
+	if ep.HasFlag("paginated") {
+		resolve := func(refName string) string { return typedefs.resolveObjectTypedef(refName, "attribute") }
+		for _, a := range ep.Attributes {
+			if a.Name == "page" {
+				return localTypedefs{paginated: true, pageItemType: jsdocType(a.Type, localTypedefs{}, false, resolve, nil)}
+			}
+		}
+		return localTypedefs{paginated: true}
+	}
+
 	if len(ep.Attributes) == 0 {
 		return localTypedefs{}
 	}
@@ -127,17 +137,25 @@ func buildClientTypedef(typedefs *typedefSet, pkg *webfunction.Package, endpoint
 		}
 
 		line := fmt.Sprintf("@property {(%s) => Promise<%s>} %s", argSig, retType, methodName)
-		if docs := strings.TrimSpace(ep.Docs); docs != "" {
-			// Same "@property {type} name - description" convention
-			// renderFieldLines already uses for Attribute/Argument
-			// typedefs - collapsed to one line, since that's what
-			// editors actually show on hover; a JSDoc property
-			// description can span multiple lines in the source, but
-			// there's no benefit to that here since nothing else reads
-			// this line back out.
-			line += " - " + strings.ReplaceAll(docs, "\n", " ")
+		// Docs are markdown (per the wire spec) and can be multi-line -
+		// squashing them onto the single @property line with spaces (an
+		// earlier version of this did exactly that) mangles them,
+		// e.g. turning a "## Heading\n\nBody" doc into a garbled
+		// "## Heading  Body" run-on. Use docLines the same way the
+		// per-method doc comment already does: the first line becomes
+		// the "- description" suffix on the @property line itself, and
+		// any remaining lines are appended as real continuation lines -
+		// JSDoc treats them as the same property's description, and
+		// this renders correctly on hover (verified: a multi-line
+		// @property description shows with its line breaks intact,
+		// not run together).
+		if dl := docLines(ep.Docs); len(dl) > 0 {
+			line += " - " + dl[0]
+			lines = append(lines, line)
+			lines = append(lines, dl[1:]...)
+		} else {
+			lines = append(lines, line)
 		}
-		lines = append(lines, line)
 	}
 
 	base := "Client"
@@ -267,7 +285,11 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 		b.WriteString("     * @param {" + td.args + "} args\n")
 	}
 
-	b.WriteString("     * @returns {Promise<" + returnType(typedefs, ep, td.returns) + ">}\n")
+	returnsLine := "     * @returns {Promise<" + returnType(typedefs, ep, td.returns) + ">}"
+	if td.returns.paginated && td.returns.pageItemType != "" {
+		returnsLine += " - `.page` holds " + td.returns.pageItemType + "."
+	}
+	b.WriteString(returnsLine + "\n")
 
 	for _, e := range ep.Errors {
 		code := strings.TrimSpace(e.Code)
@@ -275,10 +297,18 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 			continue
 		}
 		line := "     * @throws {import('" + ImportSpecifier + "').BadRequestError} " + code
-		if docs := strings.TrimSpace(e.Docs); docs != "" {
-			line += " - " + strings.ReplaceAll(docs, "\n", " ")
+		// Same docLines approach as buildClientTypedef's @property lines
+		// - error docs are markdown too and may be multi-line/paragraphed;
+		// squashing with spaces would mangle them the same way.
+		if dl := docLines(e.Docs); len(dl) > 0 {
+			line += " - " + dl[0]
+			b.WriteString(line + "\n")
+			for _, extra := range dl[1:] {
+				b.WriteString("     * " + extra + "\n")
+			}
+		} else {
+			b.WriteString(line + "\n")
 		}
-		b.WriteString(line + "\n")
 	}
 	// These two are call-agnostic - webfunction-js can raise either of
 	// them for any endpoint regardless of what error codes (if any) that
@@ -294,6 +324,9 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 }
 
 func returnType(typedefs *typedefSet, ep webfunction.Endpoint, local localTypedefs) string {
+	if local.paginated {
+		return "import('" + ImportSpecifier + "').Page"
+	}
 	resolve := func(refName string) string { return typedefs.resolveObjectTypedef(refName, "attribute") }
 	// An endpoint's Returns type has no "choices"/"values" concept of its
 	// own in the spec (that lives on individual Arguments/Attributes), so

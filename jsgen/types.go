@@ -21,9 +21,23 @@ type objectResolver func(refName string) string
 // item's shape when `returns` is a bare, untyped `array` - the spec's
 // letter doesn't cover that case, but it's what the attributes are
 // clearly there for, so it's honored here too.
+//
+// paginated/pageItemType are a separate case: webfunction-js (confirmed
+// from its real source at github.com/jonrandy/webfunction-js) auto-wraps
+// a canonical {previous, page, next} response in its own `Page` class
+// rather than handing back the raw envelope - matching what the
+// PHP/Ruby clients already do. So a paginated endpoint's return type is
+// `Page` itself, not a typedef of the envelope shape; pageItemType is
+// only the JSDoc type string describing what `.page` holds (e.g.
+// "Array<PersonAttributes>"), for the @returns description - not
+// something the type system itself narrows, since nothing confirms
+// whether the real Page class is declared generic (e.g. `Page<T>`). Not
+// inventing that pending being able to check the actual class source.
 type localTypedefs struct {
-	object      string // shape of a bare "object" return
-	arrayOfItem string // shape of each item in a bare "array" return
+	object       string // shape of a bare "object" return
+	arrayOfItem  string // shape of each item in a bare "array" return
+	paginated    bool   // true if this endpoint's return is Page instead
+	pageItemType string // JSDoc type of what `.page` holds, for docs only
 }
 
 // jsdocAlt maps a single type alternative to its JSDoc equivalent.
