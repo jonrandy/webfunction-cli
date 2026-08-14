@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"wfn/jsgen"
+	"wfn/phpgen"
 	"wfn/webfunction"
 )
 
@@ -17,6 +18,11 @@ func init() {
 // generate. Keep this in sync with whatever the generator actually
 // implements.
 var validTargets = []string{"java", "go", "php", "js", "csharp"}
+
+// defaultNamespace is --namespace's default, used by any target that
+// needs one (currently just php; expected to be shared by other
+// class-based targets later, e.g. csharp/java).
+const defaultNamespace = "WebFunctionClient"
 
 // CodegenCommand implements "wfn codegen ...".
 type CodegenCommand struct{}
@@ -33,9 +39,12 @@ func (c *CodegenCommand) Usage() string {
 Generates a client for a webfunction package in the given target language.
 
 Flags (all required):
-  --target   Target language. One of: ` + fmt.Sprint(validTargets) + `
-  --url      URL of the webfunction package to generate a client for
-  -o         Output file to write the generated code to
+  --target     Target language. One of: ` + fmt.Sprint(validTargets) + `
+  --url        URL of the webfunction package to generate a client for
+  -o           Output file to write the generated code to
+
+Flags (optional):
+  --namespace  Namespace for the generated class (currently: php). Default: ` + defaultNamespace + `
 
 Example:
   wfn codegen --target java --url https://example.com/some-package -o client.java`
@@ -47,6 +56,7 @@ func (c *CodegenCommand) Run(args []string) error {
 	target := fs.String("target", "", "target language ("+fmt.Sprint(validTargets)+")")
 	url := fs.String("url", "", "URL of the webfunction package")
 	output := fs.String("o", "", "output file name")
+	namespace := fs.String("namespace", defaultNamespace, "namespace for the generated class (currently: php)")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -88,8 +98,13 @@ func (c *CodegenCommand) Run(args []string) error {
 		if err != nil {
 			return fmt.Errorf("generating js: %w", err)
 		}
+	case "php":
+		source, err = phpgen.Generate(pkg, *url, *namespace)
+		if err != nil {
+			return fmt.Errorf("generating php: %w", err)
+		}
 	default:
-		// TODO: implement the remaining targets (java, go, php, csharp).
+		// TODO: implement the remaining targets (java, go, csharp).
 		fmt.Printf("wfn codegen: target %q not yet implemented\n", *target)
 		return nil
 	}
