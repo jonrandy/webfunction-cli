@@ -25,22 +25,34 @@
 //
 // Known open items:
 //   - PHP's real Client also supports post-construction mutators
-//     (setBearerAuth/setVersion/setPipeline per its README) - not
-//     exposed on the generated class yet; only constructor-time options
-//     are, mirroring the JS factory's approach for consistency. Revisit
-//     if that's wanted too.
+//     (setBearerAuth/setVersion/setPipeline) - not exposed on the
+//     generated class yet; only constructor-time options are, mirroring
+//     the JS factory's approach for consistency. Revisit if wanted too.
 //   - UnresolvedPromiseError (pipelining) isn't referenced in generated
 //     @throws - it's not tied to any specific endpoint or ordinary call
-//     path per its README description, unlike the other three.
-//   - Confirmed from the real Client.php README (not just Page.php):
-//     Client::fromPackageEndpoint(url, bearerAuth: ..., version: ...)
-//     takes named arguments (matched here), ->call(name, args) exists as
-//     documented, and a non-paginated endpoint's return value is exactly
-//     "an array, string, number, boolean, or null" - so the generated
-//     native return type no longer needs to hedge with `mixed` (see
-//     nonPaginatedReturnType). Numeric refinements (u32/u64/i32/i64/f32/
-//     f64/timestamp) are also now confirmed and narrow int vs float
-//     where known, instead of always falling back to int|float.
+//     path, unlike the other three.
+//
+// Confirmed from the real Client.php source (github.com/jonrandy/webfunction-php/blob/main/src/Client.php,
+// not just its README) - two corrections this required:
+//   - call()'s real signature is `call(string $endpointName, array $args = [])`
+//     - non-nullable, empty-array default - NOT `?array $args = null` as
+//     first assumed. Both the generated escape-hatch call() and every
+//     per-endpoint method's optional-args case now default to `= []` to
+//     match exactly (passing `null` through would have thrown a
+//     TypeError at that boundary - a real bug this correction fixes).
+//   - call()'s real return type is declared `mixed`, not the narrower
+//     array|string|int|float|bool|null first derived from the README's
+//     prose alone - because it can also return a real \WebFunction\Page
+//     object when the raw endpoint name happens to be paginated, which
+//     the generic passthrough (unlike a per-endpoint method) can't rule
+//     out. Per-endpoint native return types are still narrowed
+//     (nativeReturnType) since those DO know which endpoint they are.
+//   - Client::fromPackageEndpoint(url, bearerAuth: ..., version: ...)
+//     really does take named arguments (matches what was already used).
+//   - A getPackage(): ?Package accessor exists - now exposed on the
+//     generated class too, for parity with what jsgen exposes via .package.
+//   - Numeric refinements (u32/u64/i32/i64/timestamp -> int, f32/f64 ->
+//     float) are confirmed and narrow phpDocAlt's number handling.
 package phpgen
 
 import (
@@ -76,6 +88,7 @@ func Generate(pkg *webfunction.Package, sourceURL, namespace string) (string, er
 	b.WriteString("<?php\n\ndeclare(strict_types=1);\n\n")
 	b.WriteString("namespace " + namespace + ";\n\n")
 	b.WriteString("use WebFunction\\Page;\n")
+	b.WriteString("use WebFunction\\Package;\n")
 	b.WriteString("use WebFunction\\BadRequestError;\n")
 	b.WriteString("use WebFunction\\UnexpectedStatusCodeError;\n")
 	b.WriteString("use WebFunction\\JsonParseError;\n\n")
@@ -92,13 +105,16 @@ func Generate(pkg *webfunction.Package, sourceURL, namespace string) (string, er
 	return b.String(), nil
 }
 
-// nonPaginatedReturnType is the native PHP return type for the generic
-// call() escape-hatch passthrough specifically - it doesn't know which
-// endpoint is being called at generation time, so it has to stay at the
-// maximal safe union. Confirmed exactly from webfunction-php's own
-// README ("The return value is the decoded JSON response: an array,
-// string, number, boolean, or null").
-const nonPaginatedReturnType = "array|string|int|float|bool|null"
+// escapeHatchReturnType is the native PHP return type for the generic
+// call() escape-hatch passthrough specifically. Confirmed exactly from
+// the real Client.php source (github.com/jonrandy/webfunction-php/blob/main/src/Client.php):
+// its own call() is declared `: mixed` - not the narrower
+// array|string|int|float|bool|null this was first assumed to be from the
+// README's prose alone, because it can also return a real \WebFunction\Page
+// object when the raw endpoint name happens to be a paginated one (this
+// passthrough doesn't know which endpoint is being called at generation
+// time, so it can't rule that out the way a per-endpoint method can).
+const escapeHatchReturnType = "mixed"
 
 // nativeReturnType maps a specific endpoint's Returns type to the actual
 // native PHP return-type declaration for its generated method - narrower
@@ -243,7 +259,9 @@ func writeClientClass(b *strings.Builder, pkg *webfunction.Package, sourceURL st
 	b.WriteString("    }\n\n")
 
 	b.WriteString("    /**\n     * Escape hatch for calling an endpoint this client doesn't have a typed method for.\n     */\n")
-	b.WriteString("    public function call(string $name, ?array $args = null): " + nonPaginatedReturnType + "\n    {\n        return $this->client->call($name, $args);\n    }\n\n")
+	b.WriteString("    public function call(string $name, array $args = []): " + escapeHatchReturnType + "\n    {\n        return $this->client->call($name, $args);\n    }\n\n")
+
+	b.WriteString("    public function getPackage(): ?Package\n    {\n        return $this->client->getPackage();\n    }\n\n")
 
 	used := map[string]bool{}
 	for _, ep := range endpoints {
@@ -295,7 +313,12 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 	var params string
 	if info.argsShape != "" {
 		if info.argsOptional {
-			params = "?array $args = null"
+			// Not `?array $args = null` - the real Client::call() takes
+			// a non-nullable `array $args = []` (confirmed from its real
+			// source), so `null` passed straight through would throw a
+			// TypeError at that boundary. `[]` matches exactly and needs
+			// no `?? []` coalesce at the call site below.
+			params = "array $args = []"
 		} else {
 			params = "array $args"
 		}
