@@ -92,14 +92,57 @@ func Generate(pkg *webfunction.Package, sourceURL, namespace string) (string, er
 	return b.String(), nil
 }
 
-// nonPaginatedReturnType is the native PHP return type for any
-// non-paginated endpoint - confirmed exactly from webfunction-php's own
+// nonPaginatedReturnType is the native PHP return type for the generic
+// call() escape-hatch passthrough specifically - it doesn't know which
+// endpoint is being called at generation time, so it has to stay at the
+// maximal safe union. Confirmed exactly from webfunction-php's own
 // README ("The return value is the decoded JSON response: an array,
-// string, number, boolean, or null"), so this no longer needs to hedge
-// with `mixed`. Structured shape precision still only lives in the
-// PHPDoc @return - this union is as far as a native type can go for an
-// endpoint whose exact returned shape varies per call.
+// string, number, boolean, or null").
 const nonPaginatedReturnType = "array|string|int|float|bool|null"
+
+// nativeReturnType maps a specific endpoint's Returns type to the actual
+// native PHP return-type declaration for its generated method - narrower
+// than nonPaginatedReturnType whenever the wire type says something more
+// specific (e.g. a bare "boolean" return narrows to `bool`, not the full
+// union), since PHP enforces this at runtime and a caller benefits from
+// knowing precisely what a given endpoint always returns. Structured
+// shapes (bare object/array, or a named object.<name> ref) still
+// collapse to the native "array" - PHP arrays don't carry shape at the
+// language level, so PHPDoc's @return is what carries that precision,
+// not the native declaration. "any" (or anything unrecognized) collapses
+// the whole type to `mixed` alone - PHP doesn't allow combining `mixed`
+// with other types in a union, unlike `null`, which can be combined.
+func nativeReturnType(t webfunction.Type) string {
+	var parts []string
+	sawAny := false
+	for _, alt := range t.Union {
+		switch alt.Base {
+		case "string":
+			parts = append(parts, "string")
+		case "boolean":
+			parts = append(parts, "bool")
+		case "number":
+			switch alt.Refinement {
+			case "u32", "u64", "i32", "i64", "timestamp":
+				parts = append(parts, "int")
+			case "f32", "f64":
+				parts = append(parts, "float")
+			default:
+				parts = append(parts, "int", "float")
+			}
+		case "null":
+			parts = append(parts, "null")
+		case "array", "object":
+			parts = append(parts, "array")
+		default: // "any", or anything not in the confirmed base-type list
+			sawAny = true
+		}
+	}
+	if sawAny || len(parts) == 0 {
+		return "mixed"
+	}
+	return strings.Join(dedupe(parts), "|")
+}
 
 // endpointInfo holds everything about one endpoint needed to write both
 // its method and (for paginated endpoints) its companion wrapper class.
@@ -257,7 +300,7 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 			params = "array $args"
 		}
 	}
-	nativeReturn := nonPaginatedReturnType
+	nativeReturn := nativeReturnType(ep.Returns)
 	if info.pageWrapper != nil {
 		nativeReturn = info.pageWrapper.className
 	}
