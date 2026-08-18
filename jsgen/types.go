@@ -23,7 +23,7 @@ type objectResolver func(refName string) string
 // clearly there for, so it's honored here too.
 //
 // paginated/pageItemType are a separate case: webfunction-js (confirmed
-// from its real source at github.com/jonrandy/webfunction-js) auto-wraps
+// from its real source at github.com/webfunction-protocol/webfunction-js) auto-wraps
 // a canonical {previous, page, next} response in its own `Page` class
 // rather than handing back the raw envelope - matching what the
 // PHP/Ruby clients already do. So a paginated endpoint's return type is
