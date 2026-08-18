@@ -1,5 +1,5 @@
 // Package phpgen generates a typed PHP client for a webfunction package,
-// targeting webfunction-php (github.com/jonrandy/webfunction-php) and PHP
+// targeting webfunction-php (github.com/webfunction-protocol/webfunction-php) and PHP
 // 8.1+ (webfunction-php's own stated floor).
 //
 // Design decisions (confirmed with Jon before writing this):
@@ -32,7 +32,7 @@
 //     @throws - it's not tied to any specific endpoint or ordinary call
 //     path, unlike the other three.
 //
-// Confirmed from the real Client.php source (github.com/jonrandy/webfunction-php/blob/main/src/Client.php,
+// Confirmed from the real Client.php source (github.com/webfunction-protocol/webfunction-php/blob/main/src/Client.php,
 // not just its README) - two corrections this required:
 //   - call()'s real signature is `call(string $endpointName, array $args = [])`
 //     - non-nullable, empty-array default - NOT `?array $args = null` as
@@ -92,7 +92,7 @@ func Generate(pkg *webfunction.Package, sourceURL, namespace string) (string, er
 	b.WriteString("use WebFunction\\BadRequestError;\n")
 	b.WriteString("use WebFunction\\UnexpectedStatusCodeError;\n")
 	b.WriteString("use WebFunction\\JsonParseError;\n\n")
-	b.WriteString("// IMPORTANT - composer require jonrandy/webfunction-php (not published to Packagist yet)\n\n")
+	b.WriteString("// IMPORTANT - composer require webfunction-protocol/webfunction\n\n")
 
 	writeClientClass(&b, pkg, sourceURL, endpoints, infos, aliases)
 
@@ -107,7 +107,7 @@ func Generate(pkg *webfunction.Package, sourceURL, namespace string) (string, er
 
 // escapeHatchReturnType is the native PHP return type for the generic
 // call() escape-hatch passthrough specifically. Confirmed exactly from
-// the real Client.php source (github.com/jonrandy/webfunction-php/blob/main/src/Client.php):
+// the real Client.php source (github.com/webfunction-protocol/webfunction-php/blob/main/src/Client.php):
 // its own call() is declared `: mixed` - not the narrower
 // array|string|int|float|bool|null this was first assumed to be from the
 // README's prose alone, because it can also return a real \WebFunction\Page

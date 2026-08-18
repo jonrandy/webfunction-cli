@@ -264,7 +264,7 @@ func writeFactory(b *strings.Builder, pkg *webfunction.Package, sourceURL string
 //
 // The error class names (BadRequestError, UnexpectedStatusCodeError,
 // JsonParseError) and their meanings come from webfunction-js's own
-// README (github.com/jonrandy/webfunction-js): a failed call throws one
+// README (github.com/webfunction-protocol/webfunction-js): a failed call throws one
 // of these WfnError subclasses; BadRequestError's [code, message,
 // details] triple is the same "code" space as an endpoint's declared
 // ErrorDef.Code. Referenced via a JSDoc `import('webfunction').X` type
