@@ -24,10 +24,6 @@
 //     UnresolvedPromiseError), same [code, message, details] triple.
 //
 // Known open items:
-//   - PHP's real Client also supports post-construction mutators
-//     (setBearerAuth/setVersion/setPipeline) - not exposed on the
-//     generated class yet; only constructor-time options are, mirroring
-//     the JS factory's approach for consistency. Revisit if wanted too.
 //   - UnresolvedPromiseError (pipelining) isn't referenced in generated
 //     @throws - it's not tied to any specific endpoint or ordinary call
 //     path, unlike the other three.
@@ -89,6 +85,7 @@ func Generate(pkg *webfunction.Package, sourceURL, namespace string) (string, er
 	b.WriteString("namespace " + namespace + ";\n\n")
 	b.WriteString("use WebFunction\\Page;\n")
 	b.WriteString("use WebFunction\\Package;\n")
+	b.WriteString("use WebFunction\\Pipeline;\n")
 	b.WriteString("use WebFunction\\BadRequestError;\n")
 	b.WriteString("use WebFunction\\UnexpectedStatusCodeError;\n")
 	b.WriteString("use WebFunction\\JsonParseError;\n\n")
@@ -262,6 +259,10 @@ func writeClientClass(b *strings.Builder, pkg *webfunction.Package, sourceURL st
 	b.WriteString("    public function call(string $name, array $args = []): " + escapeHatchReturnType + "\n    {\n        return $this->client->call($name, $args);\n    }\n\n")
 
 	b.WriteString("    public function getPackage(): ?Package\n    {\n        return $this->client->getPackage();\n    }\n\n")
+
+	b.WriteString("    public function setBearerAuth(?string $bearerAuth): void\n    {\n        $this->client->setBearerAuth($bearerAuth);\n    }\n\n")
+	b.WriteString("    public function setVersion(?string $version): void\n    {\n        $this->client->setVersion($version);\n    }\n\n")
+	b.WriteString("    public function setPipeline(?Pipeline $pipeline): void\n    {\n        $this->client->setPipeline($pipeline);\n    }\n\n")
 
 	used := map[string]bool{}
 	for _, ep := range endpoints {
