@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"wfn/webfunction"
+	"github.com/webfunction-protocol/webfunction-go"
 )
 
 // objectResolver looks up (creating if needed) the typedef name for a

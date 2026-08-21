@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"wfn/webfunction"
+	"github.com/webfunction-protocol/webfunction-go"
 )
 
 // field is a name/type/optional/docs tuple, used to build an inline

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/webfunction-protocol/webfunction-go"
 	"wfn/jsgen"
 	"wfn/phpgen"
-	"wfn/webfunction"
 )
 
 func init() {
@@ -80,10 +80,11 @@ func (c *CodegenCommand) Run(args []string) error {
 		return fmt.Errorf("invalid --target %q, must be one of: %v", *target, validTargets)
 	}
 
-	pkg, err := webfunction.FetchPackage(*url)
+	client, err := webfunction.FromPackageEndpoint(*url, webfunction.Options{})
 	if err != nil {
 		return fmt.Errorf("fetching package: %w", err)
 	}
+	pkg := client.Package()
 
 	name := pkg.Name
 	if name == "" {

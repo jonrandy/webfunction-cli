@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"wfn/webfunction"
+	"github.com/webfunction-protocol/webfunction-go"
 )
 
 // field is a generic name/type/docs tuple, used to build a typedef from
