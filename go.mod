@@ -1,6 +1,6 @@
 module wfn
 
-go 1.22
+go 1.18
 
 require github.com/webfunction-protocol/webfunction-go v0.1.0
 
