@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"webfunction-go"
+	"github.com/webfunction-protocol/webfunction-go"
 	"wfn/jsgen"
 	"wfn/phpgen"
 )

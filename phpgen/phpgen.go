@@ -56,7 +56,7 @@ import (
 	"regexp"
 	"strings"
 
-	"webfunction-go"
+	"github.com/webfunction-protocol/webfunction-go"
 )
 
 // Generate builds a typed PHP client for pkg, targeting webfunction-php.

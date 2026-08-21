@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"webfunction-go"
+	"github.com/webfunction-protocol/webfunction-go"
 )
 
 // ImportSpecifier is the module specifier the generated file imports
