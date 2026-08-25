@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/webfunction-protocol/webfunction-go"
+	"wfn/gogen"
 	"wfn/jsgen"
 	"wfn/phpgen"
 )
@@ -104,8 +105,13 @@ func (c *CodegenCommand) Run(args []string) error {
 		if err != nil {
 			return fmt.Errorf("generating php: %w", err)
 		}
+	case "go":
+		source, err = gogen.Generate(pkg, *url, *namespace)
+		if err != nil {
+			return fmt.Errorf("generating go: %w", err)
+		}
 	default:
-		// TODO: implement the remaining targets (java, go, csharp).
+		// TODO: implement the remaining targets (java, csharp).
 		fmt.Printf("wfn codegen: target %q not yet implemented\n", *target)
 		return nil
 	}
