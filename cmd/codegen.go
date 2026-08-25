@@ -45,7 +45,7 @@ Flags (all required):
   -o           Output file to write the generated code to
 
 Flags (optional):
-  --namespace  Namespace for the generated class (currently: php). Default: ` + defaultNamespace + `
+  --namespace  Namespace for the generated class (currently for: php, go). Default: ` + defaultNamespace + `
 
 Example:
   wfn codegen --target java --url https://example.com/some-package -o client.java`
