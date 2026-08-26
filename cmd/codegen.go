@@ -57,7 +57,7 @@ func (c *CodegenCommand) Run(args []string) error {
 	target := fs.String("target", "", "target language ("+fmt.Sprint(validTargets)+")")
 	url := fs.String("url", "", "URL of the webfunction package")
 	output := fs.String("o", "", "output file name")
-	namespace := fs.String("namespace", defaultNamespace, "namespace for the generated class (currently: php)")
+	namespace := fs.String("namespace", defaultNamespace, "namespace for the generated class (currently for: php, go)")
 
 	if err := fs.Parse(args); err != nil {
 		return err
