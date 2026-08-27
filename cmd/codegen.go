@@ -7,6 +7,7 @@ import (
 
 	"github.com/webfunction-protocol/webfunction-go"
 	"wfn/gogen"
+	"wfn/javagen"
 	"wfn/jsgen"
 	"wfn/phpgen"
 )
@@ -45,7 +46,7 @@ Flags (all required):
   -o           Output file to write the generated code to
 
 Flags (optional):
-  --namespace  Namespace for the generated class (currently for: php, go). Default: ` + defaultNamespace + `
+  --namespace  Namespace for the generated class (currently for: php, go, java). Default: ` + defaultNamespace + `
 
 Example:
   wfn codegen --target java --url https://example.com/some-package -o client.java`
@@ -57,7 +58,7 @@ func (c *CodegenCommand) Run(args []string) error {
 	target := fs.String("target", "", "target language ("+fmt.Sprint(validTargets)+")")
 	url := fs.String("url", "", "URL of the webfunction package")
 	output := fs.String("o", "", "output file name")
-	namespace := fs.String("namespace", defaultNamespace, "namespace for the generated class (currently for: php, go)")
+	namespace := fs.String("namespace", defaultNamespace, "namespace for the generated class (currently for: php, go, java)")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -110,8 +111,13 @@ func (c *CodegenCommand) Run(args []string) error {
 		if err != nil {
 			return fmt.Errorf("generating go: %w", err)
 		}
+	case "java":
+		source, err = javagen.Generate(pkg, *url, *namespace)
+		if err != nil {
+			return fmt.Errorf("generating java: %w", err)
+		}
 	default:
-		// TODO: implement the remaining targets (java, csharp).
+		// TODO: implement the remaining target (csharp).
 		fmt.Printf("wfn codegen: target %q not yet implemented\n", *target)
 		return nil
 	}
