@@ -117,7 +117,21 @@ func javaAltType(alt webfunction.TypeAlt, local localTypes, resolve typeResolver
 			// choices/values apply to the field as a whole, not each
 			// element - so no enum resolution happens for the item type,
 			// only ordinary javaType recursion (mirrors gogen exactly).
-			item := javaType(*alt.Of, localTypes{}, false, resolve)
+			//
+			// forceNullable is passed as true here regardless of the
+			// item's own nullability - NOT because array items are
+			// nullable, but because Java generics can never hold a
+			// primitive at all (List<boolean> is a compile error,
+			// independent of whether individual items can be null) -
+			// javaType's forceNullable param happens to be the
+			// mechanism that already boxes a primitive, so it's reused
+			// here for an unrelated reason: forcing the boxed form
+			// unconditionally. A real bug (found by Jon compiling
+			// generated output against his actual package, not by
+			// gofmt/go vet/the fixture test - the fixture never
+			// happened to include a boolean/numeric array field) - see
+			// package doc comment for the fuller writeup.
+			item := javaType(*alt.Of, localTypes{}, true, resolve)
 			return baseType{expr: "List<" + item + ">"}
 		}
 		if local.arrayOfItem != "" {
@@ -218,6 +232,32 @@ func formatNumberLiteral(f float64) string {
 		return strconv.FormatInt(int64(f), 10)
 	}
 	return strings.ReplaceAll(strconv.FormatFloat(f, 'g', -1, 64), ".", "_")
+}
+
+// javaBoxedForGeneric returns t's boxed form if t is one of the raw
+// primitive type names javaType can produce (boolean/int/long/float/
+// double), or t unchanged otherwise. Needed anywhere a Java type
+// expression is placed inside a generic type argument (e.g.
+// TypeReference<T>) - unlike a method's own declared return type
+// (where a primitive is fine, and even preferable), a primitive is
+// never legal as a generic type parameter itself. See javagen.go's
+// writeMethodBody, and the array-item handling above for the same
+// underlying constraint hit a different way.
+func javaBoxedForGeneric(t string) string {
+	switch t {
+	case "boolean":
+		return "Boolean"
+	case "int":
+		return "Integer"
+	case "long":
+		return "Long"
+	case "float":
+		return "Float"
+	case "double":
+		return "Double"
+	default:
+		return t
+	}
 }
 
 // refinementNote turns any dotted refinements in a type (e.g. "email" in

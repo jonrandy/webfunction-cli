@@ -211,7 +211,12 @@ func buildEndpointInfo(records *recordSet, ep webfunction.Endpoint, pageClassNam
 			}
 			for _, alt := range a.Type.Union {
 				if alt.Base == "array" && alt.Of != nil {
-					itemType = javaType(*alt.Of, localTypes{}, false, resolve)
+					// forceNullable: true - same reason as types.go's
+					// array-item handling: a page's item type sits
+					// inside List<T> in the generated wrapper's
+					// getItems(), and Java generics can never hold a
+					// primitive regardless of nullability.
+					itemType = javaType(*alt.Of, localTypes{}, true, resolve)
 				}
 			}
 		}
@@ -442,7 +447,13 @@ func writeMethodBody(b *strings.Builder, ep webfunction.Endpoint, info endpointI
 	case nativeReturn == "Object":
 		b.WriteString("        return result;\n")
 	default:
-		b.WriteString("        return decodeResult(result, new TypeReference<" + nativeReturn + ">() {});\n")
+		// nativeReturn is boxed for the TypeReference<T> generic
+		// argument specifically (a primitive is never legal there),
+		// while the method's own declared return type stays whatever
+		// javaType produced (a primitive where possible) - Java
+		// autoboxes/unboxes the return statement itself automatically,
+		// so this doesn't affect the method's real signature.
+		b.WriteString("        return decodeResult(result, new TypeReference<" + javaBoxedForGeneric(nativeReturn) + ">() {});\n")
 	}
 }
 
