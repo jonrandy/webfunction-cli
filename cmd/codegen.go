@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/webfunction-protocol/webfunction-go"
+	"wfn/csharpgen"
 	"wfn/gogen"
 	"wfn/javagen"
 	"wfn/jsgen"
@@ -22,8 +23,7 @@ func init() {
 var validTargets = []string{"java", "go", "php", "js", "csharp"}
 
 // defaultNamespace is --namespace's default, used by any target that
-// needs one (currently just php; expected to be shared by other
-// class-based targets later, e.g. csharp/java).
+// needs one (php, go, java, csharp).
 const defaultNamespace = "WebFunctionClient"
 
 // CodegenCommand implements "wfn codegen ...".
@@ -46,7 +46,7 @@ Flags (all required):
   -o           Output file to write the generated code to
 
 Flags (optional):
-  --namespace  Namespace for the generated class (currently for: php, go, java). Default: ` + defaultNamespace + `
+  --namespace  Namespace for the generated class (currently for: php, go, java, csharp). Default: ` + defaultNamespace + `
 
 Example:
   wfn codegen --target java --url https://example.com/some-package -o client.java`
@@ -58,7 +58,7 @@ func (c *CodegenCommand) Run(args []string) error {
 	target := fs.String("target", "", "target language ("+fmt.Sprint(validTargets)+")")
 	url := fs.String("url", "", "URL of the webfunction package")
 	output := fs.String("o", "", "output file name")
-	namespace := fs.String("namespace", defaultNamespace, "namespace for the generated class (currently for: php, go, java)")
+	namespace := fs.String("namespace", defaultNamespace, "namespace for the generated class (currently for: php, go, java, csharp)")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -116,10 +116,15 @@ func (c *CodegenCommand) Run(args []string) error {
 		if err != nil {
 			return fmt.Errorf("generating java: %w", err)
 		}
+	case "csharp":
+		source, err = csharpgen.Generate(pkg, *url, *namespace)
+		if err != nil {
+			return fmt.Errorf("generating csharp: %w", err)
+		}
 	default:
-		// TODO: implement the remaining target (csharp).
-		fmt.Printf("wfn codegen: target %q not yet implemented\n", *target)
-		return nil
+		// isValidTarget already restricts *target to validTargets, so
+		// this is unreachable in practice - kept as a safety net.
+		return fmt.Errorf("wfn codegen: target %q not yet implemented", *target)
 	}
 
 	if err := os.WriteFile(*output, []byte(source), 0o644); err != nil {
