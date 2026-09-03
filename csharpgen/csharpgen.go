@@ -399,6 +399,15 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 	nativeReturn := "Task<" + info.returnType + ">"
 	if info.pageWrapper != nil {
 		nativeReturn = "Task<" + info.pageWrapper.className + ">"
+	} else if info.returnType == "object" {
+		// The "any"/unrecognized-type fallback returns CallAsync's raw
+		// result directly (see writeMethodBody) rather than going through
+		// DecodeResult<T>'s null-forgiving "!" - that raw value really can
+		// be null, so the method's own declared return type has to say so
+		// too. Declaring a non-nullable "object" here while actually
+		// returning a nullable value is exactly what triggered a real
+		// CS8603 warning against reservepay's package.
+		nativeReturn = "Task<object?>"
 	}
 
 	switch {

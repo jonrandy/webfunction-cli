@@ -153,6 +153,17 @@ func (e *enumDef) render(b *strings.Builder) {
 
 	readerCall, writerCall := jsonReaderWriter(e.wireType)
 
+	// A bool has exactly two possible values. When both true and false
+	// are already covered as switch arms (a "boolean" field declaring an
+	// explicit choices: [true, false] - somewhat redundant in the source
+	// data, but real - confirmed against reservepay's actual package),
+	// the switch is already exhaustive and C# rejects a trailing "_ =>"
+	// catch-all as unreachable (CS8510). string/long/double don't have
+	// this problem - their domains are unbounded, so the catch-all stays
+	// genuinely reachable (an actual wire value outside the declared
+	// choices) - only bool needs this special-cased.
+	boolExhaustive := e.wireType == "bool" && hasLiteral(e.constants, "true") && hasLiteral(e.constants, "false")
+
 	b.WriteString("    private sealed class " + e.converter + " : System.Text.Json.Serialization.JsonConverter<" + e.name + ">\n    {\n")
 	b.WriteString("        public override " + e.name + " Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)\n        {\n")
 	b.WriteString("            var wire = reader." + readerCall + ";\n")
@@ -160,7 +171,9 @@ func (e *enumDef) render(b *strings.Builder) {
 	for _, c := range e.constants {
 		b.WriteString("                " + c.literal + " => " + e.name + "." + c.label + ",\n")
 	}
-	b.WriteString("                _ => throw new System.Text.Json.JsonException($\"unknown value for " + e.name + ": {wire}\"),\n")
+	if !boolExhaustive {
+		b.WriteString("                _ => throw new System.Text.Json.JsonException($\"unknown value for " + e.name + ": {wire}\"),\n")
+	}
 	b.WriteString("            };\n")
 	b.WriteString("        }\n\n")
 	b.WriteString("        public override void Write(System.Text.Json.Utf8JsonWriter writer, " + e.name + " value, System.Text.Json.JsonSerializerOptions options)\n        {\n")
@@ -176,6 +189,18 @@ func (e *enumDef) render(b *strings.Builder) {
 
 // jsonReaderWriter returns the Utf8JsonReader getter call and
 // Utf8JsonWriter write-method name matching wireType.
+// hasLiteral reports whether any constant's rendered wire literal equals
+// literal exactly (e.g. "true"/"false" for a bool-backed enum's
+// exhaustiveness check - see enumDef.render).
+func hasLiteral(constants []enumConstant, literal string) bool {
+	for _, c := range constants {
+		if c.literal == literal {
+			return true
+		}
+	}
+	return false
+}
+
 func jsonReaderWriter(wireType string) (reader, writer string) {
 	switch wireType {
 	case "bool":
@@ -324,6 +349,35 @@ func (s *recordSet) renderFields(ownerName string, fields []field, resolve typeR
 
 		out[i] = recordField{propName: propName, typeExpr: typ, wireName: f.name, nullable: nullable, docLines: fieldDocLines}
 	}
+	return orderRequiredFirst(out)
+}
+
+// orderRequiredFirst stable-partitions record components into required
+// fields first, then optional (nullable/defaulted) ones.
+//
+// This is necessary, not cosmetic: a C# positional record's primary
+// constructor is an ordinary C# parameter list under the hood, and C#
+// (CS1737) rejects a required parameter appearing after an optional one -
+// exactly the same rule as any method signature. The wire spec has no
+// such ordering guarantee for an endpoint's arguments/attributes (a real
+// package - reservepay's - interleaves them freely), so declaration order
+// can't just mirror source order the way every other target's field
+// rendering safely does. Only the C# declaration order changes here -
+// each field's own [JsonPropertyName] wire mapping is unaffected, so
+// nothing about what actually gets sent/received changes, only the order
+// callers list constructor arguments in.
+func orderRequiredFirst(fields []recordField) []recordField {
+	out := make([]recordField, 0, len(fields))
+	for _, f := range fields {
+		if !f.nullable {
+			out = append(out, f)
+		}
+	}
+	for _, f := range fields {
+		if f.nullable {
+			out = append(out, f)
+		}
+	}
 	return out
 }
 
@@ -344,18 +398,39 @@ func (s *recordSet) buildEnumField(ownerName string, f field) (name string, hasN
 	converterName := enumName + "Converter"
 
 	usedLabels := map[string]bool{}
+	// usedLiterals dedupes by the RENDERED wire literal, not the raw
+	// source value - a real bug hit against reservepay's actual package:
+	// two choices producing the same wire literal (a true duplicate
+	// value, or two source values that happen to format identically)
+	// used to get distinct labels (Active, Active2) via usedLabels alone,
+	// but IDENTICAL literals - which compiles to two case arms in the
+	// converter's Read() switch expression matching the same pattern,
+	// and C# rejects the second as unreachable (CS8510). Skipping a
+	// literal that's already been used is also the semantically correct
+	// behavior regardless of the compile error: two distinct C# enum
+	// members that both represent the identical wire value would be a
+	// redundant (and misleading - decoding could only ever produce the
+	// first one) model of "the closed set of legal values" in the first
+	// place.
+	usedLiterals := map[string]bool{}
 	var constants []enumConstant
 	for _, c := range f.choices {
 		if c == nil {
 			hasNull = true
 			continue
 		}
+		literal := choiceWireLiteral(c, wireType)
+		if usedLiterals[literal] {
+			continue
+		}
+		usedLiterals[literal] = true
+
 		label := choiceConstantLabel(c)
 		for i := 2; usedLabels[label]; i++ {
 			label = fmt.Sprintf("%s%d", choiceConstantLabel(c), i)
 		}
 		usedLabels[label] = true
-		constants = append(constants, enumConstant{label: label, literal: choiceWireLiteral(c, wireType)})
+		constants = append(constants, enumConstant{label: label, literal: literal})
 	}
 
 	doc := enumName + " is the closed set of legal values for \"" + f.name + "\"."
