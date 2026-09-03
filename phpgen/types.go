@@ -12,7 +12,7 @@ import (
 // array-shape from either an endpoint's Arguments or its own inline
 // Attributes (bare object/array local shape) - or an object.<name>'s own
 // Arguments/Attributes when resolving a named ref. Unlike jsgen, there's
-// no separate named typedef per endpoint here: per Jon's decision, an
+// no separate named typedef per endpoint here: per design decision, an
 // endpoint's own Args/Return shape stays an inline `array{...}` - only
 // object.<name> refs get named, reusable PHPDoc type aliases (see
 // aliasSet), since those are the ones that actually need to

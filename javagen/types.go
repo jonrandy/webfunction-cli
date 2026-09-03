@@ -126,8 +126,8 @@ func javaAltType(alt webfunction.TypeAlt, local localTypes, resolve typeResolver
 			// javaType's forceNullable param happens to be the
 			// mechanism that already boxes a primitive, so it's reused
 			// here for an unrelated reason: forcing the boxed form
-			// unconditionally. A real bug (found by Jon compiling
-			// generated output against his actual package, not by
+			// unconditionally. A real bug (found by compiling
+			// generated output against an actual package, not by
 			// gofmt/go vet/the fixture test - the fixture never
 			// happened to include a boolean/numeric array field) - see
 			// package doc comment for the fuller writeup.

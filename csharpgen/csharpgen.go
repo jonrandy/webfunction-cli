@@ -1,7 +1,7 @@
 // Package csharpgen generates a typed C# client for a webfunction
 // package, targeting webfunction-csharp (the WebFunction namespace).
 //
-// Design decisions, confirmed with Jon, and how they differ from
+// Confirmed design decisions, and how they differ from
 // jsgen/phpgen/gogen/javagen:
 //
 //  1. Real generated record types, not docs-only annotations - same

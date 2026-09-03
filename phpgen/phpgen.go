@@ -2,7 +2,7 @@
 // targeting webfunction-php (github.com/webfunction-protocol/webfunction-php) and PHP
 // 8.1+ (webfunction-php's own stated floor).
 //
-// Design decisions (confirmed with Jon before writing this):
+// Design decisions (confirmed):
 //  1. Return/argument shapes use plain PHPDoc array-shape annotations
 //     (`array{key: type, ...}`), not generated DTO/value classes.
 //  2. Named, reusable PHPDoc type aliases (`@phpstan-type`/`@psalm-type`)
