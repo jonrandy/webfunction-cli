@@ -11,6 +11,7 @@ import (
 	"wfn/javagen"
 	"wfn/jsgen"
 	"wfn/phpgen"
+	"wfn/rubygen"
 )
 
 func init() {
@@ -20,7 +21,7 @@ func init() {
 // validTargets is the set of languages codegen currently knows how to
 // generate. Keep this in sync with whatever the generator actually
 // implements.
-var validTargets = []string{"java", "go", "php", "js", "csharp"}
+var validTargets = []string{"java", "go", "php", "js", "csharp", "ruby"}
 
 // defaultNamespace is --namespace's default, used by any target that
 // needs one (php, go, java, csharp).
@@ -120,6 +121,11 @@ func (c *CodegenCommand) Run(args []string) error {
 		source, err = csharpgen.Generate(pkg, *url, *namespace)
 		if err != nil {
 			return fmt.Errorf("generating csharp: %w", err)
+		}
+	case "ruby":
+		source, err = rubygen.Generate(pkg, *url)
+		if err != nil {
+			return fmt.Errorf("generating ruby: %w", err)
 		}
 	default:
 		// isValidTarget already restricts *target to validTargets, so
