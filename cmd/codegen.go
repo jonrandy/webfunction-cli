@@ -13,6 +13,7 @@ import (
 	"wfn/javagen"
 	"wfn/jsgen"
 	"wfn/phpgen"
+	"wfn/pythongen"
 	"wfn/rubygen"
 )
 
@@ -23,7 +24,7 @@ func init() {
 // validTargets is the set of languages codegen currently knows how to
 // generate. Keep this in sync with whatever the generator actually
 // implements.
-var validTargets = []string{"java", "go", "php", "js", "csharp", "ruby"}
+var validTargets = []string{"java", "go", "php", "js", "csharp", "ruby", "python"}
 
 // defaultNamespace is --namespace's default, used by any target that
 // needs one (php, go, java, csharp).
@@ -50,6 +51,8 @@ Flags (all required):
 
 Flags (optional):
   --namespace  Namespace/module for the generated class (currently for: php, go, java, csharp, ruby). Default: ` + defaultNamespace + `
+               Not used by --target python: Python's own import system
+               already provides namespacing, so there's nothing to set.
 
 Note: --target ruby writes TWO files - the -o path (a .rb source file with
 a real generated wrapper class) plus a companion .rbs signature file at
@@ -66,7 +69,7 @@ func (c *CodegenCommand) Run(args []string) error {
 	target := fs.String("target", "", "target language ("+fmt.Sprint(validTargets)+")")
 	url := fs.String("url", "", "URL of the webfunction package")
 	output := fs.String("o", "", "output file name")
-	namespace := fs.String("namespace", defaultNamespace, "namespace for the generated class (currently for: php, go, java, csharp)")
+	namespace := fs.String("namespace", defaultNamespace, "namespace/module for the generated class (currently for: php, go, java, csharp, ruby)")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -134,6 +137,11 @@ func (c *CodegenCommand) Run(args []string) error {
 		source, rubyRbs, err = rubygen.Generate(pkg, *url, *namespace)
 		if err != nil {
 			return fmt.Errorf("generating ruby: %w", err)
+		}
+	case "python":
+		source, err = pythongen.Generate(pkg, *url)
+		if err != nil {
+			return fmt.Errorf("generating python: %w", err)
 		}
 	default:
 		// isValidTarget already restricts *target to validTargets, so
