@@ -19,8 +19,9 @@
 //     ({"page": [...items], "next": ..., "previous": ...}, confirmed
 //     against webfunction-go's page.go), not the bare item shape the
 //     reference emits.
-//  3. Private endpoints are always excluded from the output - no flag
-//     exposed to include them (matches the reference's own default).
+//  3. Private endpoints are excluded from the output by default; the
+//     convert command's --private flag (shared with postmanconvert) opts
+//     them back in.
 package openapiconvert
 
 import (
@@ -32,7 +33,7 @@ import (
 
 // Generate converts pkg into an OpenAPI 3.1 document and returns it as
 // indented JSON.
-func Generate(pkg *webfunction.Package) (string, error) {
+func Generate(pkg *webfunction.Package, includePrivate bool) (string, error) {
 	resolver := newSchemaSet(pkg)
 
 	title := pkg.Name
@@ -65,7 +66,7 @@ func Generate(pkg *webfunction.Package) (string, error) {
 
 	for i := range pkg.Endpoints {
 		endpoint := &pkg.Endpoints[i]
-		if endpoint.Private() {
+		if endpoint.Private() && !includePrivate {
 			continue
 		}
 		op := buildOperation(pkg, endpoint, resolver)

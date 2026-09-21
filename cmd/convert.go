@@ -7,6 +7,7 @@ import (
 
 	"github.com/webfunction-protocol/webfunction-go"
 	"wfn/openapiconvert"
+	"wfn/postmanconvert"
 )
 
 func init() {
@@ -16,7 +17,7 @@ func init() {
 // validConvertTargets is the set of formats convert currently knows how
 // to convert a webfunction package to. Keep in sync with the generator
 // switch in Run.
-var validConvertTargets = []string{"openapi"}
+var validConvertTargets = []string{"openapi", "postman"}
 
 // ConvertCommand implements "wfn convert ...".
 type ConvertCommand struct{}
@@ -32,13 +33,15 @@ func (c *ConvertCommand) Usage() string {
 
 Converts a webfunction package definition into another document format.
 
-Flags (all required):
-  --target     Output format. One of: ` + fmt.Sprint(validConvertTargets) + `
-  --url        URL of the webfunction package to convert
-  -o           Output file to write the converted document to
+Flags:
+  --target     Output format. One of: ` + fmt.Sprint(validConvertTargets) + ` (required)
+  --url        URL of the webfunction package to convert (required)
+  -o           Output file to write the converted document to (required)
+  --private    Include endpoints flagged private in the output (default: excluded)
 
 Example:
-  wfn convert --target openapi --url https://api.myservice.com/merchants -o converted.json`
+  wfn convert --target openapi --url https://api.reservepay.com/merchants -o converted.json
+  wfn convert --target postman --url https://api.reservepay.com/merchants -o merchants.postman_collection.json --private`
 }
 
 func (c *ConvertCommand) Run(args []string) error {
@@ -47,6 +50,7 @@ func (c *ConvertCommand) Run(args []string) error {
 	target := fs.String("target", "", "output format ("+fmt.Sprint(validConvertTargets)+")")
 	url := fs.String("url", "", "URL of the webfunction package")
 	output := fs.String("o", "", "output file name")
+	private := fs.Bool("private", false, "include endpoints flagged private in the output")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -85,9 +89,14 @@ func (c *ConvertCommand) Run(args []string) error {
 	var out string
 	switch *target {
 	case "openapi":
-		out, err = openapiconvert.Generate(pkg)
+		out, err = openapiconvert.Generate(pkg, *private)
 		if err != nil {
 			return fmt.Errorf("converting to openapi: %w", err)
+		}
+	case "postman":
+		out, err = postmanconvert.Generate(pkg, *private)
+		if err != nil {
+			return fmt.Errorf("converting to postman: %w", err)
 		}
 	default:
 		// isValidConvertTarget already restricts *target to
