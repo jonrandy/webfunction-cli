@@ -25,6 +25,7 @@ package postmanconvert
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/webfunction-protocol/webfunction-go"
 )
@@ -74,8 +75,12 @@ func Generate(pkg *webfunction.Package, includePrivate bool) (string, error) {
 	return string(out), nil
 }
 
+func trimTrailingSlashes(url string) string {
+	return strings.TrimRight(url, "/")
+}
+
 func buildVariables(pkg *webfunction.Package, needsBearer bool) []Variable {
-	vars := []Variable{{Key: "baseUrl", Value: pkg.BaseURL}}
+	vars := []Variable{{Key: "baseUrl", Value: trimTrailingSlashes(pkg.BaseURL)}}
 	if needsBearer {
 		vars = append(vars, Variable{Key: "bearerToken", Value: ""})
 	}

@@ -27,6 +27,7 @@ package openapiconvert
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/webfunction-protocol/webfunction-go"
 )
@@ -53,7 +54,7 @@ func Generate(pkg *webfunction.Package, includePrivate bool) (string, error) {
 			Description:          pkg.Docs,
 			XWebfunctionVersions: pkg.Versions,
 		},
-		Servers:               []Server{{URL: pkg.BaseURL}},
+		Servers:               []Server{{URL: trimTrailingSlashes(pkg.BaseURL)}},
 		Paths:                 map[string]*PathItem{},
 		XWebfunctionVersioned: pkg.Versioned(),
 	}
@@ -236,6 +237,10 @@ func errorCodes(endpoint *webfunction.Endpoint) []string {
 		codes[i] = e.Code
 	}
 	return codes
+}
+
+func trimTrailingSlashes(url string) string {
+	return strings.TrimRight(url, "/")
 }
 
 func stringsToAny(ss []string) []any {
