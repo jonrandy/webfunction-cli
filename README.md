@@ -34,6 +34,7 @@ wfn <command> [arguments]
 |-----------|------------------------------------------------------------|
 | `help`    | Show general help, or help for a specific command           |
 | `codegen` | Generate code from a webfunction package (not yet implemented) |
+| `convert` | Convert a webfunction package to another document format (targets: openapi) |
 
 More commands will be added over time.
 
@@ -41,11 +42,13 @@ More commands will be added over time.
 
 ```
 .
-├── main.go       # entry point: parses args, dispatches to a command
-└── cmd/
-    ├── command.go  # Command interface + registry
-    ├── help.go     # the "help" command
-    └── codegen.go  # the "codegen" command
+├── main.go             # entry point: parses args, dispatches to a command
+├── cmd/
+│   ├── command.go      # Command interface + registry
+│   ├── help.go         # the "help" command
+│   ├── codegen.go      # the "codegen" command
+│   └── convert.go      # the "convert" command
+└── openapiconvert/     # convert --target openapi's package-to-OpenAPI-3.1 conversion
 ```
 
 Each command implements a small `Command` interface (`Name`, `Summary`,
