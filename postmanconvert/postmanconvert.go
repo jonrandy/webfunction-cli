@@ -9,11 +9,16 @@
 //     Folders and flat items interleave in the endpoints' declared order
 //     (a folder is created at the position of its first member).
 //  2. A package needing bearer auth at all gets collection-level bearer
-//     auth (via a {{bearerToken}} variable); any endpoint that does NOT
-//     itself require bearer_auth gets an explicit per-item
-//     {"auth": {"type": "noauth"}} override - Postman's real inherit-
-//     from-parent behavior means omitting "auth" on an item means
-//     "inherit", so a mixed package needs this to be correct.
+//     auth too (via a {{bearerToken}} variable, useful in a full Postman
+//     client), but every item's own auth is always set explicitly -
+//     bearer where the endpoint requires it, {"type": "noauth"}
+//     otherwise - rather than relying on Postman's real "inherit auth
+//     from parent" resolution. Inheritance is legitimate, standard
+//     Postman behavior, but real-world testing found that at least one
+//     popular lightweight/third-party collection *viewer* only reads an
+//     item's own auth field and never walks up to the collection level,
+//     showing no auth requirement on any endpoint as a result - explicit
+//     per-item auth is what actually renders correctly everywhere.
 //  3. Only {{baseUrl}} (and {{apiVersion}} for a versioned package,
 //     {{bearerToken}} when needed) are parameterized as collection
 //     variables - nothing else.
@@ -82,7 +87,7 @@ func trimTrailingSlashes(url string) string {
 func buildVariables(pkg *webfunction.Package, needsBearer bool) []Variable {
 	vars := []Variable{{Key: "baseUrl", Value: trimTrailingSlashes(pkg.BaseURL)}}
 	if needsBearer {
-		vars = append(vars, Variable{Key: "bearerToken", Value: ""})
+		vars = append(vars, Variable{Key: "bearerToken", Value: "your-bearer-token-here"})
 	}
 	if pkg.Versioned() {
 		version := pkg.Version
@@ -140,8 +145,21 @@ func buildItem(pkg *webfunction.Package, endpoint *webfunction.Endpoint, needsBe
 			Path: []string{endpoint.Name},
 		},
 	}
-	if needsBearer && !endpoint.BearerAuth() {
-		req.Auth = &Auth{Type: "noauth"}
+	if needsBearer {
+		if endpoint.BearerAuth() {
+			// Set explicitly per-item rather than relying on Postman's
+			// real "inherit auth from parent" resolution (walking up to
+			// the collection-level auth set below) - that's legitimate,
+			// standard Postman behavior, but plenty of lightweight/
+			// third-party collection *viewers* (as opposed to full
+			// Postman-compatible clients) only ever read an item's own
+			// auth field and never implement the inheritance walk, so
+			// they show no auth requirement at all on an item that
+			// relies on it.
+			req.Auth = &Auth{Type: "bearer", Bearer: []AuthAttr{{Key: "token", Value: "{{bearerToken}}", Type: "string"}}}
+		} else {
+			req.Auth = &Auth{Type: "noauth"}
+		}
 	}
 
 	return &Item{
