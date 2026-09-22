@@ -1,2 +1,4 @@
 github.com/webfunction-protocol/webfunction-go v0.1.0 h1:wjnK/NbpzvvVtWe7zzfh4BTBq5ntnWd08oQ8qndr61Q=
 github.com/webfunction-protocol/webfunction-go v0.1.0/go.mod h1:RpoawReyLdC6Dgzp6rPBFE0WX0ro495+e44bXWMMWWg=
+github.com/yuin/goldmark v1.6.0 h1:boZcn2GTjpsynOsC0iJHnBWa4Bi0qzfJjthwauItG68=
+github.com/yuin/goldmark v1.6.0/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
