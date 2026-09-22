@@ -19,20 +19,22 @@
 //     ({"page": [...items], "next": ..., "previous": ...}, confirmed
 //     against webfunction-go's page.go), not the bare item shape the
 //     reference emits.
-//  3. Private endpoints are always excluded from the output - no flag
-//     exposed to include them (matches the reference's own default).
+//  3. Private endpoints are excluded from the output by default; the
+//     convert command's --private flag (shared with postmanconvert) opts
+//     them back in.
 package openapiconvert
 
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/webfunction-protocol/webfunction-go"
 )
 
 // Generate converts pkg into an OpenAPI 3.1 document and returns it as
 // indented JSON.
-func Generate(pkg *webfunction.Package) (string, error) {
+func Generate(pkg *webfunction.Package, includePrivate bool) (string, error) {
 	resolver := newSchemaSet(pkg)
 
 	title := pkg.Name
@@ -52,7 +54,7 @@ func Generate(pkg *webfunction.Package) (string, error) {
 			Description:          pkg.Docs,
 			XWebfunctionVersions: pkg.Versions,
 		},
-		Servers:               []Server{{URL: pkg.BaseURL}},
+		Servers:               []Server{{URL: trimTrailingSlashes(pkg.BaseURL)}},
 		Paths:                 map[string]*PathItem{},
 		XWebfunctionVersioned: pkg.Versioned(),
 	}
@@ -65,7 +67,7 @@ func Generate(pkg *webfunction.Package) (string, error) {
 
 	for i := range pkg.Endpoints {
 		endpoint := &pkg.Endpoints[i]
-		if endpoint.Private() {
+		if endpoint.Private() && !includePrivate {
 			continue
 		}
 		op := buildOperation(pkg, endpoint, resolver)
@@ -235,6 +237,10 @@ func errorCodes(endpoint *webfunction.Endpoint) []string {
 		codes[i] = e.Code
 	}
 	return codes
+}
+
+func trimTrailingSlashes(url string) string {
+	return strings.TrimRight(url, "/")
 }
 
 func stringsToAny(ss []string) []any {

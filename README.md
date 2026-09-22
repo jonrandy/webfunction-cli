@@ -34,7 +34,7 @@ wfn <command> [arguments]
 |-----------|------------------------------------------------------------|
 | `help`    | Show general help, or help for a specific command           |
 | `codegen` | Generate code from a webfunction package (not yet implemented) |
-| `convert` | Convert a webfunction package to another document format (targets: openapi) |
+| `convert` | Convert a webfunction package to another document format (targets: openapi, postman; `--private` to include private endpoints) |
 
 More commands will be added over time.
 
@@ -48,7 +48,8 @@ More commands will be added over time.
 │   ├── help.go         # the "help" command
 │   ├── codegen.go      # the "codegen" command
 │   └── convert.go      # the "convert" command
-└── openapiconvert/     # convert --target openapi's package-to-OpenAPI-3.1 conversion
+├── openapiconvert/     # convert --target openapi's package-to-OpenAPI-3.1 conversion
+└── postmanconvert/     # convert --target postman's package-to-Postman-collection conversion
 ```
 
 Each command implements a small `Command` interface (`Name`, `Summary`,
