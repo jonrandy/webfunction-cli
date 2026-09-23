@@ -1,0 +1,14 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Array Choices Test",
+  "endpoints": [
+    {
+      "name": "set-tags",
+      "returns": "boolean",
+      "arguments": [
+        { "name": "tags", "type": [["string"]], "choices": ["red", "green", "blue"] },
+        { "name": "bad-tags", "type": [["string"]], "choices": ["red", 42, "red"] }
+      ]
+    }
+  ]
+}

@@ -2,9 +2,44 @@ package validate
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/webfunction-protocol/webfunction-go"
 )
+
+// checkBaseURL flags a base_url with a non-empty path that doesn't end
+// in "/". This isn't a cosmetic double-slash issue: the real reference
+// clients (webfunction-go's joinEndpointURL, mirroring Ruby's
+// URI.join) join base_url with an endpoint name via RFC 3986 relative
+// reference resolution, not naive string concatenation. Under that
+// resolution, a base_url ending in "/" gets the endpoint name appended
+// as a new path segment (correct), but one that DOESN'T end in "/" has
+// the endpoint name silently REPLACE its last path segment instead -
+// e.g. base_url "https://api.example.com/v1" joined with "list-people"
+// resolves to "https://api.example.com/list-people", silently dropping
+// "v1". A bare-domain base_url with no path at all (e.g.
+// "https://api.example.com") is unaffected either way, since there's no
+// path segment to replace - only a base_url WITH a path needs the
+// trailing slash.
+func (v *validator) checkBaseURL() {
+	u, err := url.Parse(v.pkg.BaseURL)
+	if err != nil {
+		return
+	}
+	if u.Path != "" && !strings.HasSuffix(u.Path, "/") {
+		v.emit("base-url-missing-trailing-slash", Error, PackageLoc(),
+			fmt.Sprintf("base_url %q has a path but no trailing slash; RFC 3986 relative reference resolution (what the reference clients actually use to join base_url with an endpoint name) will silently replace the last path segment (%q) with the endpoint name instead of appending it", v.pkg.BaseURL, pathSegmentAfter(u.Path, "/")))
+	}
+}
+
+// pathSegmentAfter returns the last "/"-delimited segment of path, for
+// naming exactly what a missing trailing slash would cause to be
+// silently dropped.
+func pathSegmentAfter(path, sep string) string {
+	parts := strings.Split(strings.TrimSuffix(path, sep), sep)
+	return parts[len(parts)-1]
+}
 
 // checkDuplicateEndpointNames flags an endpoint name appearing more than
 // once. webfunction.Package.Endpoint(name) returns only the first match,
@@ -17,8 +52,7 @@ func (v *validator) checkDuplicateEndpointNames() {
 	}
 	for name, count := range seen {
 		if count > 1 {
-			v.emit("duplicate-endpoint-name", Error,
-				fmt.Sprintf("endpoint %q", name),
+			v.emit("duplicate-endpoint-name", Error, EndpointLoc(name),
 				fmt.Sprintf("endpoint name %q appears %d times; only the first definition is reachable via Package.Endpoint(), the rest are silently masked", name, count))
 		}
 	}
@@ -38,8 +72,7 @@ func (v *validator) checkDuplicateObjectNames() {
 	}
 	for name, count := range seen {
 		if count > 1 {
-			v.emit("duplicate-object-name", Error,
-				fmt.Sprintf("object %q", name),
+			v.emit("duplicate-object-name", Error, ObjectLoc(name),
 				fmt.Sprintf("object name %q appears %d times; only the first entry is ever resolved by Package.ObjectInContext(), so a later entry's arguments/attributes may be silently unreachable", name, count))
 		}
 	}
@@ -53,7 +86,7 @@ func (v *validator) checkVersioning() {
 		return
 	}
 	if len(v.pkg.Versions) == 0 {
-		v.emit("versioned-empty-versions", Error, "package",
+		v.emit("versioned-empty-versions", Error, PackageLoc(),
 			`package declares the "versioned" flag but its "versions" list is empty or missing`)
 		return
 	}
@@ -66,7 +99,7 @@ func (v *validator) checkVersioning() {
 			}
 		}
 		if !found {
-			v.emit("version-not-in-versions", Error, "package",
+			v.emit("version-not-in-versions", Error, PackageLoc(),
 				fmt.Sprintf("package's declared version %q is not present in its own \"versions\" list %v", v.pkg.Version, v.pkg.Versions))
 		}
 	}
@@ -87,27 +120,27 @@ func (v *validator) checkVersioning() {
 // existence.
 func (v *validator) checkObjectRefs() {
 	for _, e := range v.pkg.Endpoints {
-		v.walkType(e.Returns, webfunction.AttributeContext, fmt.Sprintf("endpoint %q returns", e.Name))
+		v.walkType(e.Returns, webfunction.AttributeContext, EndpointLoc(e.Name).Returns())
 		for _, a := range e.Arguments {
-			v.walkType(a.Type, webfunction.ArgumentContext, fmt.Sprintf("endpoint %q argument %q", e.Name, a.Name))
+			v.walkType(a.Type, webfunction.ArgumentContext, EndpointLoc(e.Name).Argument(a.Name))
 		}
 		for _, a := range e.Attributes {
-			v.walkType(a.Type, webfunction.AttributeContext, fmt.Sprintf("endpoint %q attribute %q", e.Name, a.Name))
+			v.walkType(a.Type, webfunction.AttributeContext, EndpointLoc(e.Name).Attribute(a.Name))
 		}
 	}
 	for _, o := range v.pkg.Objects {
 		for _, a := range o.Arguments {
-			v.walkType(a.Type, webfunction.ArgumentContext, fmt.Sprintf("object %q argument %q", o.Name, a.Name))
+			v.walkType(a.Type, webfunction.ArgumentContext, ObjectLoc(o.Name).Argument(a.Name))
 		}
 		for _, a := range o.Attributes {
-			v.walkType(a.Type, webfunction.AttributeContext, fmt.Sprintf("object %q attribute %q", o.Name, a.Name))
+			v.walkType(a.Type, webfunction.AttributeContext, ObjectLoc(o.Name).Attribute(a.Name))
 		}
 	}
 }
 
 // walkType checks every alternative in t (recursing into array element
 // types) for a dangling object.<n> reference.
-func (v *validator) walkType(t webfunction.Type, ctx webfunction.ObjectContext, location string) {
+func (v *validator) walkType(t webfunction.Type, ctx webfunction.ObjectContext, loc Loc) {
 	for _, alt := range t.Union {
 		if alt.IsObjectRef() {
 			if v.pkg.ObjectInContext(alt.Refinement, ctx) == nil {
@@ -115,12 +148,12 @@ func (v *validator) walkType(t webfunction.Type, ctx webfunction.ObjectContext, 
 				if ctx == webfunction.ArgumentContext {
 					ctxName = "argument"
 				}
-				v.emit("dangling-object-ref", Error, location,
+				v.emit("dangling-object-ref", Error, loc,
 					fmt.Sprintf("references object.%s in %s context, which doesn't exist or defines no %s members", alt.Refinement, ctxName, ctxName))
 			}
 		}
 		if alt.Of != nil {
-			v.walkType(*alt.Of, ctx, location)
+			v.walkType(*alt.Of, ctx, loc)
 		}
 	}
 }

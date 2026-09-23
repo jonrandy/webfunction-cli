@@ -43,8 +43,22 @@ type Finding struct {
 	Check string `json:"check"`
 	// Severity is one of Error, Warning, or Info.
 	Severity Severity `json:"severity"`
-	// Location is a short human-readable path to where the issue was
-	// found (e.g. `endpoint "list-people" argument "status"`).
+	// Scope is "package", "endpoint", or "object" - what kind of thing
+	// this finding is about.
+	Scope string `json:"scope"`
+	// Subject is the endpoint or object name this finding is about.
+	// Empty when Scope is "package".
+	Subject string `json:"subject,omitempty"`
+	// Part is which part of Subject this finding concerns: "returns",
+	// "argument", "attribute", or "" for the subject as a whole.
+	Part string `json:"part,omitempty"`
+	// Field is the specific argument/attribute name. Empty unless Part
+	// is "argument" or "attribute".
+	Field string `json:"field,omitempty"`
+	// Location is a short human-readable rendering of Scope/Subject/
+	// Part/Field (e.g. `endpoint "list-people" argument "status"`),
+	// provided as a convenience for anyone who just wants one string
+	// rather than assembling the structured fields themselves.
 	Location string `json:"location"`
 	// Message describes the issue itself.
 	Message string `json:"message"`
@@ -136,11 +150,15 @@ type validator struct {
 	findings []Finding
 }
 
-func (v *validator) emit(check string, sev Severity, location, message string) {
+func (v *validator) emit(check string, sev Severity, loc Loc, message string) {
 	v.findings = append(v.findings, Finding{
 		Check:    check,
 		Severity: sev,
-		Location: location,
+		Scope:    loc.Scope,
+		Subject:  loc.Subject,
+		Part:     loc.Part,
+		Field:    loc.Field,
+		Location: loc.String(),
 		Message:  message,
 	})
 }

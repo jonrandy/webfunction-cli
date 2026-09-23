@@ -1,0 +1,14 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Versioned Mismatch Example",
+  "flags": ["versioned"],
+  "version": "v3",
+  "versions": ["v1", "v2"],
+  "endpoints": [
+    {
+      "name": "ping",
+      "returns": "boolean",
+      "arguments": []
+    }
+  ]
+}

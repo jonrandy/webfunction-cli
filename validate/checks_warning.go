@@ -3,22 +3,9 @@ package validate
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/webfunction-protocol/webfunction-go"
 )
-
-// checkBaseURL flags a base_url ending in "/". Every codegen target and
-// both convert targets already defend against this downstream (their own
-// "/" + endpoint-name join would otherwise double up), but the defect is
-// upstream in the package definition itself - worth flagging at the
-// source instead of relying on every consumer to keep working around it.
-func (v *validator) checkBaseURL() {
-	if strings.HasSuffix(v.pkg.BaseURL, "/") {
-		v.emit("base-url-trailing-slash", Warning, "package",
-			fmt.Sprintf("base_url %q ends with a trailing slash; joining it with an endpoint name (base_url + \"/\" + name) produces a double slash", v.pkg.BaseURL))
-	}
-}
 
 // checkBareReturns flags an endpoint whose Returns includes a bare
 // (unrefined) "object" or a bare "array" alternative with no endpoint-
@@ -33,10 +20,10 @@ func (v *validator) checkBareReturns() {
 		for _, alt := range e.Returns.Union {
 			switch {
 			case alt.Base == "object" && alt.Refinement == "":
-				v.emit("bare-object-return", Warning, fmt.Sprintf("endpoint %q returns", e.Name),
+				v.emit("bare-object-return", Warning, EndpointLoc(e.Name).Returns(),
 					`return type includes a bare (unrefined) "object" with no endpoint-level "attributes" to describe its shape`)
 			case alt.Base == "array" && alt.Of == nil:
-				v.emit("bare-array-return", Warning, fmt.Sprintf("endpoint %q returns", e.Name),
+				v.emit("bare-array-return", Warning, EndpointLoc(e.Name).Returns(),
 					`return type includes a bare "array" (no element type) with no endpoint-level "attributes" to describe its item shape`)
 			}
 		}
@@ -58,23 +45,23 @@ func (v *validator) checkBareReturns() {
 func (v *validator) checkChoicesAndValues() {
 	for _, e := range v.pkg.Endpoints {
 		for _, a := range e.Arguments {
-			v.checkChoiceList(a.Type, a.Choices, fmt.Sprintf("endpoint %q argument %q", e.Name, a.Name), "choices")
+			v.checkChoiceList(a.Type, a.Choices, EndpointLoc(e.Name).Argument(a.Name), "choices")
 		}
 		for _, a := range e.Attributes {
-			v.checkChoiceList(a.Type, a.Values, fmt.Sprintf("endpoint %q attribute %q", e.Name, a.Name), "values")
+			v.checkChoiceList(a.Type, a.Values, EndpointLoc(e.Name).Attribute(a.Name), "values")
 		}
 	}
 	for _, o := range v.pkg.Objects {
 		for _, a := range o.Arguments {
-			v.checkChoiceList(a.Type, a.Choices, fmt.Sprintf("object %q argument %q", o.Name, a.Name), "choices")
+			v.checkChoiceList(a.Type, a.Choices, ObjectLoc(o.Name).Argument(a.Name), "choices")
 		}
 		for _, a := range o.Attributes {
-			v.checkChoiceList(a.Type, a.Values, fmt.Sprintf("object %q attribute %q", o.Name, a.Name), "values")
+			v.checkChoiceList(a.Type, a.Values, ObjectLoc(o.Name).Attribute(a.Name), "values")
 		}
 	}
 }
 
-func (v *validator) checkChoiceList(t webfunction.Type, values []any, location, field string) {
+func (v *validator) checkChoiceList(t webfunction.Type, values []any, loc Loc, field string) {
 	if len(values) == 0 {
 		return
 	}
@@ -84,12 +71,12 @@ func (v *validator) checkChoiceList(t webfunction.Type, values []any, location, 
 	seen := map[string]bool{}
 	for _, val := range values {
 		if !skipTypeCheck && !elementType.Valid(val) {
-			v.emit("choice-value-type-mismatch", Warning, location,
+			v.emit("choice-value-type-mismatch", Warning, loc,
 				fmt.Sprintf("%s entry %s doesn't validate against %s", field, jsonRepr(val), describedAs))
 		}
 		key := jsonRepr(val)
 		if seen[key] {
-			v.emit("duplicate-choice-value", Warning, location,
+			v.emit("duplicate-choice-value", Warning, loc,
 				fmt.Sprintf("%s contains a duplicate entry %s", field, key))
 		}
 		seen[key] = true

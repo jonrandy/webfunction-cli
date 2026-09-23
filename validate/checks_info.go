@@ -25,21 +25,21 @@ var (
 func (v *validator) checkFlags() {
 	for _, f := range v.pkg.Flags {
 		if !knownPackageFlags[f] {
-			v.emit("unrecognized-flag", Info, "package",
+			v.emit("unrecognized-flag", Info, PackageLoc(),
 				fmt.Sprintf("unrecognized flag %q - could be a typo, or a newer flag this validator doesn't know about yet", f))
 		}
 	}
 	for _, e := range v.pkg.Endpoints {
 		for _, f := range e.Flags {
 			if !knownEndpointFlags[f] {
-				v.emit("unrecognized-flag", Info, fmt.Sprintf("endpoint %q", e.Name),
+				v.emit("unrecognized-flag", Info, EndpointLoc(e.Name),
 					fmt.Sprintf("unrecognized flag %q - could be a typo, or a newer flag this validator doesn't know about yet", f))
 			}
 		}
 		for _, a := range e.Arguments {
 			for _, f := range a.Flags {
 				if !knownArgumentFlags[f] {
-					v.emit("unrecognized-flag", Info, fmt.Sprintf("endpoint %q argument %q", e.Name, a.Name),
+					v.emit("unrecognized-flag", Info, EndpointLoc(e.Name).Argument(a.Name),
 						fmt.Sprintf("unrecognized flag %q - could be a typo, or a newer flag this validator doesn't know about yet", f))
 				}
 			}
@@ -54,7 +54,7 @@ func (v *validator) checkFlags() {
 // disclaimers on every report.
 func (v *validator) checkSpecAmbiguities() {
 	if len(v.pkg.Errors) > 0 {
-		v.emit("ambiguous-package-error-inheritance", Info, "package",
+		v.emit("ambiguous-package-error-inheritance", Info, PackageLoc(),
 			`package declares package-level "errors"; whether these implicitly apply to every endpoint or only an endpoint's own declared "errors" is unconfirmed by anything read from the spec so far - this validator does not check endpoint @throws-style completeness against package-level errors because of that ambiguity`)
 	}
 
@@ -66,7 +66,7 @@ func (v *validator) checkSpecAmbiguities() {
 		}
 	}
 	if eventSource || v.pkg.PipelineURL != "" {
-		v.emit("ambiguous-events-concept", Info, "package",
+		v.emit("ambiguous-events-concept", Info, PackageLoc(),
 			`package references "event_source" and/or a pipeline URL; whether "events"/event_source_url/pipeline-based delivery are real, still-unimplemented spec concepts or an early over-read of the spec site is unconfirmed - webfunction-go's Package type deliberately has no structural fields for "events" because of this`)
 	}
 }

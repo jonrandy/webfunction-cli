@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"sort"
 	"strings"
 
 	"github.com/yuin/goldmark"
@@ -39,6 +40,13 @@ func (r *Report) renderJSON() (string, error) {
 // renderMarkdown is the canonical human-readable format - both the
 // standalone "markdown" output and the source that "html" is rendered
 // from via goldmark, so the two formats never drift apart in content.
+//
+// Within each severity band, findings are sub-grouped by subject
+// (endpoint/object) so everything about one endpoint reads together,
+// rather than being scattered in whatever order the checks happened to
+// run. Package-scope findings (there's only ever one "subject" for
+// those - the package itself) are listed directly under the severity
+// heading with no sub-heading of their own.
 func (r *Report) renderMarkdown() string {
 	var b strings.Builder
 
@@ -53,23 +61,100 @@ func (r *Report) renderMarkdown() string {
 	}
 
 	for _, sev := range []Severity{Error, Warning, Info} {
-		var group []Finding
+		var inSeverity []Finding
 		for _, f := range r.Findings {
 			if f.Severity == sev {
-				group = append(group, f)
+				inSeverity = append(inSeverity, f)
 			}
 		}
-		if len(group) == 0 {
+		if len(inSeverity) == 0 {
 			continue
 		}
-		fmt.Fprintf(&b, "## %s (%d)\n\n", severityHeading(sev), len(group))
-		for _, f := range group {
-			fmt.Fprintf(&b, "- **[%s]** `%s` — %s\n", f.Location, f.Check, f.Message)
+		fmt.Fprintf(&b, "## %s (%d)\n\n", severityHeading(sev), len(inSeverity))
+
+		for _, group := range groupByLocation(inSeverity) {
+			if group.heading != "" {
+				fmt.Fprintf(&b, "### %s\n\n", group.heading)
+			}
+			for _, f := range group.findings {
+				if detail := detailString(f); detail != "" {
+					fmt.Fprintf(&b, "- **[%s]** `%s` — %s\n", detail, f.Check, f.Message)
+				} else {
+					fmt.Fprintf(&b, "- `%s` — %s\n", f.Check, f.Message)
+				}
+			}
+			b.WriteString("\n")
 		}
-		b.WriteString("\n")
 	}
 
 	return b.String()
+}
+
+// locGroup is one subject's findings within a single severity band.
+type locGroup struct {
+	heading  string // "" for the package group (no sub-heading rendered)
+	findings []Finding
+}
+
+// groupByLocation groups findings (already filtered to one severity) by
+// subject: package findings first (ungrouped), then endpoints
+// alphabetically, then objects alphabetically. Order within a group is
+// the order findings were passed in.
+func groupByLocation(findings []Finding) []locGroup {
+	var pkgFindings []Finding
+	endpointOrder := []string{}
+	endpointFindings := map[string][]Finding{}
+	objectOrder := []string{}
+	objectFindings := map[string][]Finding{}
+
+	for _, f := range findings {
+		switch f.Scope {
+		case "endpoint":
+			if _, ok := endpointFindings[f.Subject]; !ok {
+				endpointOrder = append(endpointOrder, f.Subject)
+			}
+			endpointFindings[f.Subject] = append(endpointFindings[f.Subject], f)
+		case "object":
+			if _, ok := objectFindings[f.Subject]; !ok {
+				objectOrder = append(objectOrder, f.Subject)
+			}
+			objectFindings[f.Subject] = append(objectFindings[f.Subject], f)
+		default:
+			pkgFindings = append(pkgFindings, f)
+		}
+	}
+
+	sort.Strings(endpointOrder)
+	sort.Strings(objectOrder)
+
+	var groups []locGroup
+	if len(pkgFindings) > 0 {
+		groups = append(groups, locGroup{findings: pkgFindings})
+	}
+	for _, name := range endpointOrder {
+		groups = append(groups, locGroup{heading: fmt.Sprintf("Endpoint: %s", name), findings: endpointFindings[name]})
+	}
+	for _, name := range objectOrder {
+		groups = append(groups, locGroup{heading: fmt.Sprintf("Object: %s", name), findings: objectFindings[name]})
+	}
+	return groups
+}
+
+// detailString renders just the Part/Field-specific fragment of a
+// finding's location (e.g. `argument "status"`), for use inside a
+// sub-heading that already names the subject - avoids repeating the
+// full `endpoint "x" argument "y"` sentence redundantly.
+func detailString(f Finding) string {
+	switch f.Part {
+	case "returns":
+		return "returns"
+	case "argument":
+		return fmt.Sprintf("argument %q", f.Field)
+	case "attribute":
+		return fmt.Sprintf("attribute %q", f.Field)
+	default:
+		return ""
+	}
 }
 
 func severityHeading(sev Severity) string {
@@ -102,6 +187,7 @@ func (r *Report) renderHTML() (string, error) {
 body { font-family: -apple-system, sans-serif; max-width: 860px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; color: #1a1a1a; }
 h1 { border-bottom: 2px solid #ddd; padding-bottom: 0.3rem; }
 h2 { margin-top: 2rem; }
+h3 { margin-top: 1.2rem; margin-bottom: 0.4rem; font-size: 1.05em; color: #444; }
 ul { padding-left: 1.2rem; }
 li { margin: 0.4rem 0; }
 code { background: #f3f4f6; padding: 0.1rem 0.35rem; border-radius: 3px; font-size: 0.9em; }
