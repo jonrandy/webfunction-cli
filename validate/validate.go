@@ -114,7 +114,7 @@ func Run(pkg *webfunction.Package, url string) *Report {
 	}
 
 	v := &validator{pkg: pkg}
-	v.checkBaseURL()
+	v.checkEventSourceReturnType()
 	v.checkDuplicateEndpointNames()
 	v.checkDuplicateObjectNames()
 	v.checkVersioning()
@@ -122,7 +122,6 @@ func Run(pkg *webfunction.Package, url string) *Report {
 	v.checkBareReturns()
 	v.checkChoicesAndValues()
 	v.checkFlags()
-	v.checkSpecAmbiguities()
 
 	r := &Report{
 		PackageName: name,

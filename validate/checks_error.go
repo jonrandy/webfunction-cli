@@ -2,43 +2,32 @@ package validate
 
 import (
 	"fmt"
-	"net/url"
-	"strings"
 
 	"github.com/webfunction-protocol/webfunction-go"
 )
 
-// checkBaseURL flags a base_url with a non-empty path that doesn't end
-// in "/". This isn't a cosmetic double-slash issue: the real reference
-// clients (webfunction-go's joinEndpointURL, mirroring Ruby's
-// URI.join) join base_url with an endpoint name via RFC 3986 relative
-// reference resolution, not naive string concatenation. Under that
-// resolution, a base_url ending in "/" gets the endpoint name appended
-// as a new path segment (correct), but one that DOESN'T end in "/" has
-// the endpoint name silently REPLACE its last path segment instead -
-// e.g. base_url "https://api.example.com/v1" joined with "list-people"
-// resolves to "https://api.example.com/list-people", silently dropping
-// "v1". A bare-domain base_url with no path at all (e.g.
-// "https://api.example.com") is unaffected either way, since there's no
-// path segment to replace - only a base_url WITH a path needs the
-// trailing slash.
-func (v *validator) checkBaseURL() {
-	u, err := url.Parse(v.pkg.BaseURL)
-	if err != nil {
-		return
-	}
-	if u.Path != "" && !strings.HasSuffix(u.Path, "/") {
-		v.emit("base-url-missing-trailing-slash", Error, PackageLoc(),
-			fmt.Sprintf("base_url %q has a path but no trailing slash; RFC 3986 relative reference resolution (what the reference clients actually use to join base_url with an endpoint name) will silently replace the last path segment (%q) with the endpoint name instead of appending it", v.pkg.BaseURL, pathSegmentAfter(u.Path, "/")))
+// checkEventSourceReturnType flags an endpoint with the "event_source"
+// flag whose Returns isn't exactly ["string"]. Per
+// https://webfunction.org/package#available-flags: "An endpoint with
+// this flag MUST declare a returns of [\"string\"]" - a real MUST, not
+// a style preference, since event_source is meant to return a single
+// event source URL string.
+func (v *validator) checkEventSourceReturnType() {
+	for _, e := range v.pkg.Endpoints {
+		if !e.HasFlag("event_source") {
+			continue
+		}
+		if !isBareStringReturn(e.Returns) {
+			v.emit("event-source-invalid-return-type", Error, EndpointLoc(e.Name).Returns(),
+				`endpoint declares the "event_source" flag, which per spec requires returns to be exactly ["string"], but its declared returns type doesn't match`)
+		}
 	}
 }
 
-// pathSegmentAfter returns the last "/"-delimited segment of path, for
-// naming exactly what a missing trailing slash would cause to be
-// silently dropped.
-func pathSegmentAfter(path, sep string) string {
-	parts := strings.Split(strings.TrimSuffix(path, sep), sep)
-	return parts[len(parts)-1]
+// isBareStringReturn reports whether t is exactly the single-alternative
+// union {"string"} - no other alternatives, no refinement.
+func isBareStringReturn(t webfunction.Type) bool {
+	return len(t.Union) == 1 && t.Union[0].Base == "string" && t.Union[0].Refinement == ""
 }
 
 // checkDuplicateEndpointNames flags an endpoint name appearing more than

@@ -2,26 +2,26 @@ package validate
 
 import "fmt"
 
-// knownPackageFlags/knownEndpointFlags/knownArgumentFlags are the flags
-// referenced anywhere in this project so far. A flag outside these sets
-// could be a typo, or could be a legitimate newer flag this project just
-// doesn't know about yet - so this is an info-level note either way, not
-// a hard failure. "package" and "event_source" are themselves
-// unconfirmed (see checkSpecAmbiguities) but are included here as
-// "known-but-ambiguous" rather than "unknown", since flagging them AGAIN
-// as merely-unrecognized would be redundant with the dedicated note.
+// knownPackageFlags/knownEndpointFlags/knownArgumentFlags/
+// knownAttributeFlags are the flags documented at
+// https://webfunction.org/package#available-flags, scoped exactly to
+// the level the spec assigns them. A flag outside its level's known set
+// could be a typo, or a legitimate newer flag this validator doesn't
+// know about yet - so this is an info-level note either way, not a hard
+// failure.
 var (
 	knownPackageFlags  = map[string]bool{"versioned": true}
 	knownEndpointFlags = map[string]bool{
 		"paginated": true, "bearer_auth": true, "private": true,
-		"error_triple": true, "capture_bearer": true, "versioned": true,
+		"error_triple": true, "capture_bearer": true,
 		"package": true, "event_source": true,
 	}
-	knownArgumentFlags = map[string]bool{"required": true}
+	knownArgumentFlags  = map[string]bool{"required": true}
+	knownAttributeFlags = map[string]bool{"nullable": true}
 )
 
-// checkFlags flags any flag string, at package/endpoint/argument level,
-// outside the known sets above.
+// checkFlags flags any flag string, at package/endpoint/argument/
+// attribute level, outside the known set for that level.
 func (v *validator) checkFlags() {
 	for _, f := range v.pkg.Flags {
 		if !knownPackageFlags[f] {
@@ -44,29 +44,31 @@ func (v *validator) checkFlags() {
 				}
 			}
 		}
-	}
-}
-
-// checkSpecAmbiguities emits the two open spec questions this project
-// has never resolved, as info-level notes rather than silently assuming
-// an answer either way - deliberately data-driven (only raised when the
-// package actually exercises the ambiguous area), not blanket
-// disclaimers on every report.
-func (v *validator) checkSpecAmbiguities() {
-	if len(v.pkg.Errors) > 0 {
-		v.emit("ambiguous-package-error-inheritance", Info, PackageLoc(),
-			`package declares package-level "errors"; whether these implicitly apply to every endpoint or only an endpoint's own declared "errors" is unconfirmed by anything read from the spec so far - this validator does not check endpoint @throws-style completeness against package-level errors because of that ambiguity`)
-	}
-
-	eventSource := false
-	for _, e := range v.pkg.Endpoints {
-		if e.HasFlag("event_source") {
-			eventSource = true
-			break
+		for _, a := range e.Attributes {
+			for _, f := range a.Flags {
+				if !knownAttributeFlags[f] {
+					v.emit("unrecognized-flag", Info, EndpointLoc(e.Name).Attribute(a.Name),
+						fmt.Sprintf("unrecognized flag %q - could be a typo, or a newer flag this validator doesn't know about yet", f))
+				}
+			}
 		}
 	}
-	if eventSource || v.pkg.PipelineURL != "" {
-		v.emit("ambiguous-events-concept", Info, PackageLoc(),
-			`package references "event_source" and/or a pipeline URL; whether "events"/event_source_url/pipeline-based delivery are real, still-unimplemented spec concepts or an early over-read of the spec site is unconfirmed - webfunction-go's Package type deliberately has no structural fields for "events" because of this`)
+	for _, o := range v.pkg.Objects {
+		for _, a := range o.Arguments {
+			for _, f := range a.Flags {
+				if !knownArgumentFlags[f] {
+					v.emit("unrecognized-flag", Info, ObjectLoc(o.Name).Argument(a.Name),
+						fmt.Sprintf("unrecognized flag %q - could be a typo, or a newer flag this validator doesn't know about yet", f))
+				}
+			}
+		}
+		for _, a := range o.Attributes {
+			for _, f := range a.Flags {
+				if !knownAttributeFlags[f] {
+					v.emit("unrecognized-flag", Info, ObjectLoc(o.Name).Attribute(a.Name),
+						fmt.Sprintf("unrecognized flag %q - could be a typo, or a newer flag this validator doesn't know about yet", f))
+				}
+			}
+		}
 	}
 }

@@ -14,30 +14,30 @@ re-verify by hand:
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
+  "encoding/json"
+  "fmt"
+  "os"
 
-	"github.com/webfunction-protocol/webfunction-go"
-	"wfn/validate"
+  "github.com/webfunction-protocol/webfunction-go"
+  "wfn/validate"
 )
 
 func main() {
-	data, _ := os.ReadFile(os.Args[1])
-	var pkg webfunction.Package
-	if err := json.Unmarshal(data, &pkg); err != nil {
-		fmt.Fprintln(os.Stderr, "parse error:", err)
-		os.Exit(1)
-	}
-	report := validate.Run(&pkg, "file://"+os.Args[1])
-	format := "json"
-	if len(os.Args) > 2 {
-		format = os.Args[2]
-	}
-	out, _ := report.Render(format)
-	fmt.Println(out)
-	fmt.Fprintf(os.Stderr, "%d error(s), %d warning(s), %d info note(s); Failed()=%v\n",
-		report.ErrorCount, report.WarningCount, report.InfoCount, report.Failed())
+  data, _ := os.ReadFile(os.Args[1])
+  var pkg webfunction.Package
+  if err := json.Unmarshal(data, &pkg); err != nil {
+    fmt.Fprintln(os.Stderr, "parse error:", err)
+    os.Exit(1)
+  }
+  report := validate.Run(&pkg, "file://"+os.Args[1])
+  format := "json"
+  if len(os.Args) > 2 {
+    format = os.Args[2]
+  }
+  out, _ := report.Render(format)
+  fmt.Println(out)
+  fmt.Fprintf(os.Stderr, "%d error(s), %d warning(s), %d info note(s); Failed()=%v\n",
+    report.ErrorCount, report.WarningCount, report.InfoCount, report.Failed())
 }
 ```
 
@@ -48,10 +48,9 @@ func main() {
   actually required fixing a first-draft mistake - see "found via
   fixtures" below.)
 - **flawed.json** - deliberately exercises nearly every check in one
-  package: 5 errors / 5 warnings / 4 info notes, `Failed()=true`. Covers:
-  - `base-url-missing-trailing-slash` (`base_url` is
-    `https://api.example.com/v1`, no trailing slash - see the note
-    below on why this is error-severity, not a style nit)
+  package: 5 errors / 5 warnings / 3 info notes, `Failed()=true`. Covers:
+  - `event-source-invalid-return-type` (`list-people` sets `event_source`
+    but returns `object.ghost`, not `["string"]`)
   - `duplicate-endpoint-name` (two `list-people` endpoints)
   - `duplicate-object-name` (two `person` objects, one argument-context
     only, one attribute-context only - the second is masked, not just
@@ -64,10 +63,13 @@ func main() {
   - `duplicate-choice-value` and `choice-value-type-mismatch` (the
     `status` argument's choices include a repeated `"active"` and a
     numeric `1` against a `string` type)
-  - `unrecognized-flag` at both package level (`made_up_package_flag`)
-    and endpoint level (`made_up_flag`)
-  - `ambiguous-package-error-inheritance` (package declares `errors`)
-  - `ambiguous-events-concept` (an endpoint sets `event_source`)
+  - `unrecognized-flag` at package level (`made_up_package_flag`),
+    endpoint level (`made_up_flag`), and attribute level
+    (`made_up_attribute_flag` on `person`'s `id` attribute)
+- **event-source-valid.json** - a correctly-typed `event_source`
+  endpoint (`returns: ["string"]`) - must produce **zero** findings,
+  confirming `event-source-invalid-return-type` has no false positive
+  on the valid case.
 - **versioned-mismatch.json** - isolated case for `version-not-in-
   versions`: `"versioned"` flag set, a real non-empty `versions` list,
   but `version` isn't a member of it. Kept separate from flawed.json
@@ -87,24 +89,64 @@ func main() {
   type) is what's actually being checked, and that a valid string
   choice against an array<string> field is no longer a false positive.
 
-## base_url check reversed (Jon's correction)
+## Spec pages resolved several open questions (Jon asked about /error, /package)
 
-The original check flagged a *trailing* slash on `base_url` as a
-warning, on the assumption of naive `base_url + "/" + name`
-concatenation. Jon pointed out `base_url` should actually *have* a
-trailing slash, which prompted checking how the real reference clients
-join it - `webfunction-go`'s `client.go` (mirroring Ruby's
-`URI.join`) uses RFC 3986 relative reference resolution, not string
-concatenation. Verified directly: a `base_url` with a path segment and
-no trailing slash has the endpoint name silently *replace* that last
-path segment (`https://api.example.com/v1` + `list-people` ->
-`https://api.example.com/list-people`, `v1` dropped) rather than
-appending it. A bare-domain `base_url` (no path at all) is unaffected
-either way. Reclassified as `base-url-missing-trailing-slash`, moved
-from checks_warning.go to checks_error.go, and bumped to **error**
-severity (confirmed with Jon) since it's a silent wrong-request bug,
-not a style nit. The finding message names the exact path segment that
-would be dropped.
+Reading https://webfunction.org/package and https://webfunction.org/error
+directly resolved multiple things this project had left as open questions:
+
+- **Package-level vs endpoint-level `errors` isn't inheritance at all.**
+  `/error` states they're two separate, parallel, purely advisory lists -
+  package-level for codes shared across endpoints (auth, rate limits),
+  endpoint-level for that endpoint's own business logic. A server may
+  return codes in neither list; clients must handle unlisted codes
+  regardless. There's nothing to be ambiguous about, so the
+  `ambiguous-package-error-inheritance` info note (and
+  `checkSpecAmbiguities` entirely) was removed rather than kept "resolved
+  as fine." This also confirms codegen's own convention (scoping
+  `@throws`-style output to an endpoint's own `errors` only) was already
+  spec-correct.
+- **`events`/`event_source_url`/`pipeline_url` are real, spec-defined
+  package keys** (`/package` documents both plus a full `Event`
+  schema) - not an early over-read as `webfunction-go`'s `Package`
+  doc comment had guessed. Comment corrected in `webfunction-go/
+  package.go` to reflect this; the Ruby reference client apparently just
+  hasn't implemented them yet. Actually adding `EventSourceURL`/`Events`
+  fields to `Package` (a real feature, needs an `Event` type) is left as
+  a flagged follow-up, out of scope for this session.
+- **New check unlocked by this**: `/package`'s flag table states an
+  endpoint with `event_source` MUST declare `returns` of exactly
+  `["string"]` - a real, checkable MUST. Added as
+  `event-source-invalid-return-type` (error severity,
+  `isBareStringReturn` helper checks for a single unrefined `string`
+  alternative and nothing else).
+- **Attribute-level flags were a gap**: `/package`'s flag table lists
+  `nullable` as an Attribute-scoped flag, but `checkFlags` never checked
+  attribute flags at all (endpoint or object attributes). Added
+  `knownAttributeFlags = {"nullable"}` and wired attribute-flag checking
+  into `checkFlags` for both endpoint attributes and object attributes.
+  While tightening this, also removed `"versioned"` from
+  `knownEndpointFlags` - the spec states each flag MUST only be used at
+  its designated level, and `versioned` is Package-only.
+- **The base_url trailing-slash check is gone, not just re-severitized.**
+  `/package`'s "URL composition" section states the actual join rule
+  plainly: append directly if `base_url` ends in `/`, otherwise insert a
+  single `/`. That's simple string normalization, not RFC 3986 relative
+  reference resolution - which is what `webfunction-go`'s `client.go`
+  was actually using (mirroring what was believed to be Ruby's
+  `URI.join` behavior). That mismatch was a real, separate bug in
+  `webfunction-go` itself (not a package-authoring pitfall `validate`
+  should be flagging): a `base_url` with a path and no trailing slash
+  had its last path segment silently replaced instead of the endpoint
+  name being appended under it. Fixed `joinEndpointURL` in
+  `webfunction-go/client.go` to do the spec's plain normalization
+  instead, added `TestJoinEndpointURL` there as a permanent regression
+  test, and removed the `base-url-missing-trailing-slash` check from
+  `validate` entirely - with the client fixed, `base_url` no longer
+  needs a trailing slash under any circumstance, so there's nothing left
+  to check. (A different, real base_url check the spec's "Validation
+  requirements" section does call for - `base_url` MUST be valid per RFC
+  3986 - was flagged as a good next candidate but not built this
+  session, to stay scoped to what was actually asked.)
 
 ## Found via fixtures (not by reading code)
 
