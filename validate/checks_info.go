@@ -2,73 +2,66 @@ package validate
 
 import "fmt"
 
-// knownPackageFlags/knownEndpointFlags/knownArgumentFlags/
-// knownAttributeFlags are the flags documented at
-// https://webfunction.org/package#available-flags, scoped exactly to
-// the level the spec assigns them. A flag outside its level's known set
-// could be a typo, or a legitimate newer flag this validator doesn't
-// know about yet - so this is an info-level note either way, not a hard
-// failure.
-var (
-	knownPackageFlags  = map[string]bool{"versioned": true}
-	knownEndpointFlags = map[string]bool{
-		"paginated": true, "bearer_auth": true, "private": true,
-		"error_triple": true, "capture_bearer": true,
-		"package": true, "event_source": true,
-	}
-	knownArgumentFlags  = map[string]bool{"required": true}
-	knownAttributeFlags = map[string]bool{"nullable": true}
-)
+// flagLevel maps every flag documented at
+// https://webfunction.org/package#available-flags to the single level
+// spec assigns it to: "package", "endpoint", "argument", or
+// "attribute". A flag not present here at all is genuinely unrecognized
+// (checkFlags treats that as info - could be a typo, or a legitimate
+// newer flag this validator doesn't know about yet). A flag that IS
+// present here but at a level OTHER than where it was found is a
+// different, more serious case: spec states "A flag MUST only be used
+// at its designated level ... and MUST NOT appear at any other level" -
+// that's a known, unambiguous violation, not a guess, so checkFlags
+// reports it as an error instead of lumping it in with genuinely
+// unknown flags.
+var flagLevel = map[string]string{
+	"versioned":      "package",
+	"package":        "endpoint",
+	"event_source":   "endpoint",
+	"error_triple":   "endpoint",
+	"bearer_auth":    "endpoint",
+	"capture_bearer": "endpoint",
+	"paginated":      "endpoint",
+	"private":        "endpoint",
+	"required":       "argument",
+	"nullable":       "attribute",
+}
 
-// checkFlags flags any flag string, at package/endpoint/argument/
-// attribute level, outside the known set for that level.
+// checkFlags checks every flag string, at every level (package,
+// endpoint, argument, attribute), against flagLevel.
 func (v *validator) checkFlags() {
-	for _, f := range v.pkg.Flags {
-		if !knownPackageFlags[f] {
-			v.emit("unrecognized-flag", Info, PackageLoc(),
-				fmt.Sprintf("unrecognized flag %q - could be a typo, or a newer flag this validator doesn't know about yet", f))
-		}
-	}
+	v.checkFlagList(v.pkg.Flags, "package", PackageLoc())
 	for _, e := range v.pkg.Endpoints {
-		for _, f := range e.Flags {
-			if !knownEndpointFlags[f] {
-				v.emit("unrecognized-flag", Info, EndpointLoc(e.Name),
-					fmt.Sprintf("unrecognized flag %q - could be a typo, or a newer flag this validator doesn't know about yet", f))
-			}
-		}
+		v.checkFlagList(e.Flags, "endpoint", EndpointLoc(e.Name))
 		for _, a := range e.Arguments {
-			for _, f := range a.Flags {
-				if !knownArgumentFlags[f] {
-					v.emit("unrecognized-flag", Info, EndpointLoc(e.Name).Argument(a.Name),
-						fmt.Sprintf("unrecognized flag %q - could be a typo, or a newer flag this validator doesn't know about yet", f))
-				}
-			}
+			v.checkFlagList(a.Flags, "argument", EndpointLoc(e.Name).Argument(a.Name))
 		}
 		for _, a := range e.Attributes {
-			for _, f := range a.Flags {
-				if !knownAttributeFlags[f] {
-					v.emit("unrecognized-flag", Info, EndpointLoc(e.Name).Attribute(a.Name),
-						fmt.Sprintf("unrecognized flag %q - could be a typo, or a newer flag this validator doesn't know about yet", f))
-				}
-			}
+			v.checkFlagList(a.Flags, "attribute", EndpointLoc(e.Name).Attribute(a.Name))
 		}
 	}
 	for _, o := range v.pkg.Objects {
 		for _, a := range o.Arguments {
-			for _, f := range a.Flags {
-				if !knownArgumentFlags[f] {
-					v.emit("unrecognized-flag", Info, ObjectLoc(o.Name).Argument(a.Name),
-						fmt.Sprintf("unrecognized flag %q - could be a typo, or a newer flag this validator doesn't know about yet", f))
-				}
-			}
+			v.checkFlagList(a.Flags, "argument", ObjectLoc(o.Name).Argument(a.Name))
 		}
 		for _, a := range o.Attributes {
-			for _, f := range a.Flags {
-				if !knownAttributeFlags[f] {
-					v.emit("unrecognized-flag", Info, ObjectLoc(o.Name).Attribute(a.Name),
-						fmt.Sprintf("unrecognized flag %q - could be a typo, or a newer flag this validator doesn't know about yet", f))
-				}
-			}
+			v.checkFlagList(a.Flags, "attribute", ObjectLoc(o.Name).Attribute(a.Name))
+		}
+	}
+}
+
+// checkFlagList checks each flag in flags, found at the given level and
+// location, against flagLevel.
+func (v *validator) checkFlagList(flags []string, level string, loc Loc) {
+	for _, f := range flags {
+		properLevel, known := flagLevel[f]
+		switch {
+		case !known:
+			v.emit("unrecognized-flag", Info, loc,
+				fmt.Sprintf("unrecognized flag %q - could be a typo, or a newer flag this validator doesn't know about yet", f))
+		case properLevel != level:
+			v.emit("flag-wrong-level", Error, loc,
+				fmt.Sprintf("flag %q is a valid flag, but only at %s level per spec - it MUST NOT appear at %s level", f, properLevel, level))
 		}
 	}
 }

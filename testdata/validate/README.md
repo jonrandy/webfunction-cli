@@ -127,6 +127,20 @@ directly resolved multiple things this project had left as open questions:
   While tightening this, also removed `"versioned"` from
   `knownEndpointFlags` - the spec states each flag MUST only be used at
   its designated level, and `versioned` is Package-only.
+- **Flag level-scoping wasn't actually enforced (follow-up review of the
+  same spec section).** The four per-level `knownXFlags` sets caught
+  genuinely unknown flag strings, but a *real* flag used at the *wrong*
+  level (e.g. `required` on an endpoint, `paginated` on an argument) fell
+  into the same generic `unrecognized-flag` info bucket as a typo -
+  even though spec states flags "MUST NOT appear at any other level",
+  which is a known, unambiguous violation, not a guess. Replaced the
+  four separate known-sets with one `flagLevel map[string]string`
+  (flag name -> its one correct level) and a shared `checkFlagList`
+  helper: a flag missing from the map entirely is still
+  `unrecognized-flag` (info), but a flag present in the map at a
+  *different* level is now `flag-wrong-level` (error). New fixture
+  `flag-wrong-level.json` (2 errors: `required` on an endpoint,
+  `paginated` on an argument). Existing fixtures re-verified unchanged.
 - **The base_url trailing-slash check is gone, not just re-severitized.**
   `/package`'s "URL composition" section states the actual join rule
   plainly: append directly if `base_url` ends in `/`, otherwise insert a
