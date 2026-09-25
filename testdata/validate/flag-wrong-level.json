@@ -1,0 +1,15 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Flag Level Test",
+  "endpoints": [
+    {
+      "name": "do-thing",
+      "returns": "boolean",
+      "flags": ["required"],
+      "arguments": [
+        { "name": "id", "type": "string", "flags": ["paginated"] }
+      ],
+      "attributes": []
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Event Source Test",
+  "endpoints": [
+    {
+      "name": "get-event-stream",
+      "returns": ["string"],
+      "flags": ["event_source"],
+      "arguments": []
+    }
+  ]
+}

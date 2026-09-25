@@ -1,0 +1,37 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Clean Example API",
+  "objects": [
+    {
+      "name": "person",
+      "attributes": [
+        { "name": "id", "type": "string" },
+        { "name": "name", "type": "string" }
+      ],
+      "arguments": [
+        { "name": "id", "type": "string", "flags": ["required"] }
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "name": "get-person",
+      "returns": "object.person",
+      "arguments": [
+        { "name": "id", "type": "string", "flags": ["required"] }
+      ]
+    },
+    {
+      "name": "list-people",
+      "returns": [["object.person"]],
+      "flags": ["paginated"],
+      "arguments": [
+        {
+          "name": "status",
+          "type": "string",
+          "choices": ["active", "inactive"]
+        }
+      ]
+    }
+  ]
+}

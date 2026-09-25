@@ -1,0 +1,53 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Flawed Example API",
+  "flags": ["versioned", "made_up_package_flag"],
+  "errors": [
+    { "code": "RATE_LIMITED", "docs": "Too many requests." }
+  ],
+  "objects": [
+    {
+      "name": "person",
+      "attributes": [
+        { "name": "id", "type": "string", "flags": ["made_up_attribute_flag"] },
+        { "name": "name", "type": "string" }
+      ]
+    },
+    {
+      "name": "person",
+      "arguments": [
+        { "name": "id", "type": "string", "flags": ["required"] }
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "name": "list-people",
+      "returns": "object.ghost",
+      "flags": ["paginated", "event_source", "made_up_flag"],
+      "arguments": [
+        {
+          "name": "status",
+          "type": "string",
+          "choices": ["active", "inactive", "active", 1]
+        }
+      ]
+    },
+    {
+      "name": "list-people",
+      "returns": "array",
+      "arguments": []
+    },
+    {
+      "name": "get-blob",
+      "returns": "object",
+      "arguments": []
+    },
+    {
+      "name": "get-anything",
+      "returns": "array",
+      "arguments": [],
+      "attributes": []
+    }
+  ]
+}
