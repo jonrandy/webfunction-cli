@@ -122,6 +122,7 @@ func Run(pkg *webfunction.Package, url string) *Report {
 	v.checkBareReturns()
 	v.checkChoicesAndValues()
 	v.checkFlags()
+	v.checkPrivateRequiredArguments()
 
 	r := &Report{
 		PackageName: name,

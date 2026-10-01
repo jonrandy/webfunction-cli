@@ -70,6 +70,13 @@ func main() {
   endpoint (`returns: ["string"]`) - must produce **zero** findings,
   confirming `event-source-invalid-return-type` has no false positive
   on the valid case.
+- **private-levels.json** - `private` used at every level spec now
+  allows it (endpoint, endpoint argument, endpoint attribute, object
+  attribute) - must produce **zero** findings.
+- **private-required.json** - `private` at package level
+  (`flag-wrong-level`, error) plus an endpoint argument and an object
+  argument each flagged both `private` and `required`
+  (`private-required-argument`, error) - 3 errors total.
 - **versioned-mismatch.json** - isolated case for `version-not-in-
   versions`: `"versioned"` flag set, a real non-empty `versions` list,
   but `version` isn't a member of it. Kept separate from flawed.json

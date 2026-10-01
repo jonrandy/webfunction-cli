@@ -1,0 +1,28 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Private Required Test",
+  "flags": ["private"],
+  "endpoints": [
+    {
+      "name": "get-person",
+      "returns": "object.person",
+      "arguments": [
+        { "name": "id", "type": "string", "flags": ["required"] },
+        { "name": "token", "type": "string", "flags": ["private", "required"] }
+      ],
+      "attributes": []
+    }
+  ],
+  "objects": [
+    {
+      "name": "filter",
+      "arguments": [
+        { "name": "secret", "type": "string", "flags": ["required", "private"] }
+      ]
+    },
+    {
+      "name": "person",
+      "attributes": [{ "name": "name", "type": "string" }]
+    }
+  ]
+}
