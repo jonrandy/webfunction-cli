@@ -85,6 +85,9 @@ func (c *ConvertCommand) Run(args []string) error {
 		name = "(unnamed package)"
 	}
 	fmt.Printf("Fetched %s (%d endpoint(s)) from %s\n", name, len(pkg.Endpoints), *url)
+	if *private {
+		fmt.Println("Including private endpoints, arguments, and attributes (--private)")
+	}
 
 	var out string
 	switch *target {
