@@ -23,8 +23,9 @@
 //     {{bearerToken}} when needed) are parameterized as collection
 //     variables - nothing else.
 //  4. Items carry only a request - no canned example "saved" responses.
-//  5. Private endpoints are excluded unless includePrivate is true (the
-//     convert command's --private flag, shared with openapiconvert).
+//  5. Private endpoints and arguments are excluded unless includePrivate
+//     is true (the convert command's --private flag, shared with
+//     openapiconvert).
 package postmanconvert
 
 import (
@@ -33,6 +34,8 @@ import (
 	"strings"
 
 	"github.com/webfunction-protocol/webfunction-go"
+
+	"wfn/privatefilter"
 )
 
 const schemaURL = "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -40,6 +43,9 @@ const schemaURL = "https://schema.getpostman.com/json/collection/v2.1.0/collecti
 // Generate converts pkg into a Postman collection and returns it as
 // indented JSON.
 func Generate(pkg *webfunction.Package, includePrivate bool) (string, error) {
+	if !includePrivate {
+		pkg = privatefilter.Apply(pkg)
+	}
 	title := pkg.Name
 	if title == "" {
 		title = "Web Function API"
