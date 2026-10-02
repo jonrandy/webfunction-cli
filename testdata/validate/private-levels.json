@@ -1,0 +1,34 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Private Levels Test",
+  "endpoints": [
+    {
+      "name": "internal-sync",
+      "returns": "boolean",
+      "flags": ["private"],
+      "arguments": [],
+      "attributes": []
+    },
+    {
+      "name": "get-person",
+      "returns": "object.person",
+      "arguments": [
+        { "name": "id", "type": "string", "flags": ["required"] },
+        { "name": "debug", "type": "boolean", "flags": ["private"] }
+      ],
+      "attributes": [
+        { "name": "id", "type": "string" },
+        { "name": "internal_notes", "type": "string", "flags": ["private"] }
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "name": "person",
+      "attributes": [
+        { "name": "name", "type": "string" },
+        { "name": "audit_ref", "type": "string", "flags": ["private"] }
+      ]
+    }
+  ]
+}

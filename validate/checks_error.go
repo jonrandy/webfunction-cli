@@ -146,3 +146,27 @@ func (v *validator) walkType(t webfunction.Type, ctx webfunction.ObjectContext, 
 		}
 	}
 }
+
+// checkPrivateRequiredArguments flags an argument carrying both the
+// "private" and "required" flags. A private argument is omitted from
+// public docs and generated clients, so a required one would make the
+// documented call impossible to complete - the combination is never
+// valid.
+func (v *validator) checkPrivateRequiredArguments() {
+	check := func(args []webfunction.Argument, loc func(name string) Loc) {
+		for _, a := range args {
+			if hasFlag(a.Flags, "private") && hasFlag(a.Flags, "required") {
+				v.emit("private-required-argument", Error, loc(a.Name),
+					`argument is flagged both "private" and "required" - a private argument is omitted from public output, so it can never be required`)
+			}
+		}
+	}
+	for _, e := range v.pkg.Endpoints {
+		name := e.Name
+		check(e.Arguments, func(arg string) Loc { return EndpointLoc(name).Argument(arg) })
+	}
+	for _, o := range v.pkg.Objects {
+		name := o.Name
+		check(o.Arguments, func(arg string) Loc { return ObjectLoc(name).Argument(arg) })
+	}
+}
