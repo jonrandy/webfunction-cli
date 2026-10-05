@@ -97,6 +97,8 @@ import (
 	"strings"
 
 	"github.com/webfunction-protocol/webfunction-go"
+
+	"wfn/privatefilter"
 )
 
 // LibraryReference documents, in the generated header comment, what the
@@ -106,9 +108,15 @@ const LibraryReference = "webfunction (pip install webfunction)"
 // Generate builds a typed Python client for pkg, targeting
 // webfunction-python. Unlike every other target, this one takes no
 // namespace parameter - see the package doc comment, decision 12.
-func Generate(pkg *webfunction.Package, sourceURL string) (string, error) {
+//
+// Anything flagged "private" - endpoints, arguments, and attributes - is
+// left out of the generated code unless includePrivate is true.
+func Generate(pkg *webfunction.Package, sourceURL string, includePrivate bool) (string, error) {
+	if !includePrivate {
+		pkg = privatefilter.Apply(pkg)
+	}
 	dc := newDataclassSet(pkg)
-	endpoints := visibleEndpoints(pkg)
+	endpoints := visibleEndpoints(pkg, includePrivate)
 
 	// Pre-compute every endpoint's shapes first, so dataclass resolution
 	// (which mutates dc as it goes, same as every other target's
@@ -220,10 +228,10 @@ func forEndpointReturn(dc *dataclassSet, ep webfunction.Endpoint) localTypes {
 	}
 }
 
-func visibleEndpoints(pkg *webfunction.Package) []webfunction.Endpoint {
+func visibleEndpoints(pkg *webfunction.Package, includePrivate bool) []webfunction.Endpoint {
 	out := make([]webfunction.Endpoint, 0, len(pkg.Endpoints))
 	for _, ep := range pkg.Endpoints {
-		if ep.HasFlag("private") {
+		if !includePrivate && ep.HasFlag("private") {
 			continue
 		}
 		out = append(out, ep)
