@@ -34,7 +34,7 @@ wfn <command> [arguments]
 |-----------|------------------------------------------------------------|
 | `help`    | Show general help, or help for a specific command           |
 | `codegen` | Generate code from a webfunction package (not yet implemented) |
-| `convert` | Convert a webfunction package to another document format (targets: openapi, postman; `--private` to include private endpoints) |
+| `convert` | Convert a webfunction package to another document format (targets: openapi, postman; `--private` to include private endpoints, arguments, and attributes) |
 
 More commands will be added over time.
 

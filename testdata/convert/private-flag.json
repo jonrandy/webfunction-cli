@@ -1,0 +1,48 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Private Flag Convert Test",
+  "endpoints": [
+    {
+      "name": "internal-sync",
+      "returns": "boolean",
+      "flags": ["private"],
+      "arguments": [{ "name": "sync_secret", "type": "string" }],
+      "attributes": []
+    },
+    {
+      "name": "get-person",
+      "returns": "object.person",
+      "arguments": [
+        { "name": "id", "type": "string", "flags": ["required"] },
+        { "name": "debug_trace", "type": "boolean", "flags": ["private"] },
+        { "name": "filter", "type": "object.filter" }
+      ],
+      "attributes": []
+    },
+    {
+      "name": "list-notes",
+      "returns": "array",
+      "arguments": [],
+      "attributes": [
+        { "name": "text", "type": "string" },
+        { "name": "internal_flag", "type": "boolean", "flags": ["private"] }
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "name": "filter",
+      "arguments": [
+        { "name": "status", "type": "string" },
+        { "name": "hidden_override", "type": "string", "flags": ["private"] }
+      ]
+    },
+    {
+      "name": "person",
+      "attributes": [
+        { "name": "name", "type": "string" },
+        { "name": "audit_ref", "type": "string", "flags": ["private"] }
+      ]
+    }
+  ]
+}
