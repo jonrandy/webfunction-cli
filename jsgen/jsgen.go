@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/webfunction-protocol/webfunction-go"
+
+	"wfn/privatefilter"
 )
 
 // ImportSpecifier is the module specifier the generated file imports
@@ -35,13 +37,20 @@ type endpointTypedefs struct {
 // @returns points at a composite typedef listing every method - so editors
 // get full intellisense on both the call args and the result, not just a
 // generic Object.
-func Generate(pkg *webfunction.Package, sourceURL string) (string, error) {
+//
+// Anything flagged "private" - endpoints, arguments, and attributes - is
+// left out of the generated code unless includePrivate is true.
+func Generate(pkg *webfunction.Package, sourceURL string, includePrivate bool) (string, error) {
+	if !includePrivate {
+		pkg = privatefilter.Apply(pkg)
+	}
+
 	var b strings.Builder
 
 	writeHeader(&b, pkg, sourceURL)
 
 	typedefs := newTypedefSet(pkg)
-	endpoints := visibleEndpoints(pkg)
+	endpoints := visibleEndpoints(pkg, includePrivate)
 
 	// Pre-compute every endpoint's arg/return typedefs first, so the
 	// typedef block above the factory is complete before anything
@@ -176,11 +185,11 @@ func buildClientTypedef(typedefs *typedefSet, pkg *webfunction.Package, endpoint
 
 // visibleEndpoints returns the package's endpoints in their original
 // order, excluding any flagged "private" (per the spec, tooling SHOULD
-// omit these from generated/published output).
-func visibleEndpoints(pkg *webfunction.Package) []webfunction.Endpoint {
+// omit these from generated/published output) unless includePrivate.
+func visibleEndpoints(pkg *webfunction.Package, includePrivate bool) []webfunction.Endpoint {
 	out := make([]webfunction.Endpoint, 0, len(pkg.Endpoints))
 	for _, ep := range pkg.Endpoints {
-		if ep.HasFlag("private") {
+		if !includePrivate && ep.HasFlag("private") {
 			continue
 		}
 		out = append(out, ep)

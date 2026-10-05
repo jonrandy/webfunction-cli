@@ -14,3 +14,8 @@ directly and calls `openapiconvert.Generate` / `postmanconvert.Generate`
   appear in either output; with `includePrivate` true, all appear in the
   OpenAPI output, and the argument ones in Postman (which only renders
   request bodies, not response attributes).
+
+`private-flag.json` is also used to check `wfn codegen --target js`
+(and, as each target gains `--private` support, the others): by default
+no private name may appear in the generated code; with `includePrivate`
+all of them do.
