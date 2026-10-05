@@ -29,7 +29,7 @@ var validTargets = []string{"java", "go", "php", "js", "csharp", "ruby", "python
 // privateTargets is the subset of validTargets that honors --private
 // (including private endpoints, arguments, and attributes in the
 // generated code). The rest always exclude them, for now.
-var privateTargets = []string{"js"}
+var privateTargets = []string{"js", "php"}
 
 // defaultNamespace is --namespace's default, used by any target that
 // needs one (php, go, java, csharp).
@@ -59,7 +59,7 @@ Flags (optional):
                Not used by --target python: Python's own import system
                already provides namespacing, so there's nothing to set.
   --private    Include endpoints, arguments, and attributes flagged private
-               in the generated code (default: excluded). Currently for: js
+               in the generated code (default: excluded). Currently for: js, php
 
 Note: --target ruby writes TWO files - the -o path (a .rb source file with
 a real generated wrapper class) plus a companion .rbs signature file at
@@ -77,7 +77,7 @@ func (c *CodegenCommand) Run(args []string) error {
 	url := fs.String("url", "", "URL of the webfunction package")
 	output := fs.String("o", "", "output file name")
 	namespace := fs.String("namespace", defaultNamespace, "namespace/module for the generated class (currently for: php, go, java, csharp, ruby)")
-	private := fs.Bool("private", false, "include endpoints, arguments, and attributes flagged private (currently for: js)")
+	private := fs.Bool("private", false, "include endpoints, arguments, and attributes flagged private (currently for: js, php)")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -129,7 +129,7 @@ func (c *CodegenCommand) Run(args []string) error {
 			return fmt.Errorf("generating js: %w", err)
 		}
 	case "php":
-		source, err = phpgen.Generate(pkg, *url, *namespace)
+		source, err = phpgen.Generate(pkg, *url, *namespace, *private)
 		if err != nil {
 			return fmt.Errorf("generating php: %w", err)
 		}
