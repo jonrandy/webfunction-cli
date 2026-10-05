@@ -118,6 +118,8 @@ import (
 	"strings"
 
 	"github.com/webfunction-protocol/webfunction-go"
+
+	"wfn/privatefilter"
 )
 
 // ClientCoordinates documents the Maven coordinates the generated file's
@@ -132,11 +134,17 @@ const ClientCoordinates = "org.webfunction:webfunction"
 // (see names.go's javaPackageName) - the shared --namespace flag maps
 // onto Java's own dot-separated package convention more directly than
 // any other target so far.
-func Generate(pkg *webfunction.Package, sourceURL, namespace string) (string, error) {
+//
+// Anything flagged "private" - endpoints, arguments, and attributes - is
+// left out of the generated code unless includePrivate is true.
+func Generate(pkg *webfunction.Package, sourceURL, namespace string, includePrivate bool) (string, error) {
 	packageName := javaPackageName(namespace)
 
+	if !includePrivate {
+		pkg = privatefilter.Apply(pkg)
+	}
 	records := newRecordSet(pkg)
-	endpoints := visibleEndpoints(pkg)
+	endpoints := visibleEndpoints(pkg, includePrivate)
 
 	// Pre-compute every endpoint's shapes first, so record/enum
 	// resolution (which mutates records as it goes, same as gogen's
@@ -265,10 +273,10 @@ func forEndpointReturn(records *recordSet, ep webfunction.Endpoint) localTypes {
 	}
 }
 
-func visibleEndpoints(pkg *webfunction.Package) []webfunction.Endpoint {
+func visibleEndpoints(pkg *webfunction.Package, includePrivate bool) []webfunction.Endpoint {
 	out := make([]webfunction.Endpoint, 0, len(pkg.Endpoints))
 	for _, ep := range pkg.Endpoints {
-		if ep.HasFlag("private") {
+		if !includePrivate && ep.HasFlag("private") {
 			continue
 		}
 		out = append(out, ep)
