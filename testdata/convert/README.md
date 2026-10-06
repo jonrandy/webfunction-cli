@@ -16,8 +16,7 @@ directly and calls `openapiconvert.Generate` / `postmanconvert.Generate`
   request bodies, not response attributes).
 
 `private-flag.json` is also used to check `wfn codegen --target js` and
-`--target php`, `--target python`, `--target java` and
-`--target csharp` (and, as each target gains `--private` support, the
-others): by default
+`--target php`, `--target python`, `--target java`, `--target csharp` and
+`--target go` (and, as each target gains `--private` support, the others): by default
 no private name may appear in the generated code; with `includePrivate`
 all of them do.
