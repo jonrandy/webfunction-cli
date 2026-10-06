@@ -33,8 +33,9 @@ wfn <command> [arguments]
 | Command   | Description                                              |
 |-----------|------------------------------------------------------------|
 | `help`    | Show general help, or help for a specific command           |
-| `codegen` | Generate code from a webfunction package (not yet implemented) |
+| `codegen` | Generate a typed client for a webfunction package (targets: java, go, php, js, csharp, ruby, python; `--private` to include private endpoints, arguments, and attributes) |
 | `convert` | Convert a webfunction package to another document format (targets: openapi, postman; `--private` to include private endpoints, arguments, and attributes) |
+| `validate` | Check a webfunction package's structure and flags, writing a report (formats: json, markdown, html) |
 
 More commands will be added over time.
 
@@ -47,9 +48,20 @@ More commands will be added over time.
 │   ├── command.go      # Command interface + registry
 │   ├── help.go         # the "help" command
 │   ├── codegen.go      # the "codegen" command
-│   └── convert.go      # the "convert" command
+│   ├── convert.go      # the "convert" command
+│   └── validate.go     # the "validate" command
+├── csharpgen/          # codegen --target csharp
+├── gogen/              # codegen --target go
+├── javagen/            # codegen --target java
+├── jsgen/              # codegen --target js
+├── phpgen/             # codegen --target php
+├── pythongen/          # codegen --target python
+├── rubygen/            # codegen --target ruby
 ├── openapiconvert/     # convert --target openapi's package-to-OpenAPI-3.1 conversion
-└── postmanconvert/     # convert --target postman's package-to-Postman-collection conversion
+├── postmanconvert/     # convert --target postman's package-to-Postman-collection conversion
+├── privatefilter/      # strips private arguments/attributes before convert/codegen
+├── validate/           # the checks and report rendering behind the "validate" command
+└── testdata/           # fixture packages for validate and convert/codegen checks
 ```
 
 Each command implements a small `Command` interface (`Name`, `Summary`,
