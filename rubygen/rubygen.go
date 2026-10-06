@@ -55,6 +55,8 @@ import (
 	"strings"
 
 	"github.com/webfunction-protocol/webfunction-go"
+
+	"wfn/privatefilter"
 )
 
 // Generate builds a real Ruby wrapper-class source file plus a
@@ -62,12 +64,18 @@ import (
 // generated classes (mirroring every other target's --namespace flag,
 // reintroduced now that v2 actually has a generated class to namespace
 // - v1 had none). Returns (rubySource, rbsSource, error).
-func Generate(pkg *webfunction.Package, sourceURL, moduleName string) (rubySource, rbsSource string, err error) {
+//
+// Anything flagged "private" - endpoints, arguments, and attributes - is
+// left out of both generated files unless includePrivate is true.
+func Generate(pkg *webfunction.Package, sourceURL, moduleName string, includePrivate bool) (rubySource, rbsSource string, err error) {
 	if moduleName == "" {
 		moduleName = "WebFunctionClient"
 	}
+	if !includePrivate {
+		pkg = privatefilter.Apply(pkg)
+	}
 	classes := newClassSet(pkg)
-	endpoints := visibleEndpoints(pkg)
+	endpoints := visibleEndpoints(pkg, includePrivate)
 
 	infos := make([]endpointGen, 0, len(endpoints))
 	usedMethodNames := map[string]bool{}
@@ -443,10 +451,10 @@ func callArgsExpr(info endpointGen) string {
 	return "(**args)"
 }
 
-func visibleEndpoints(pkg *webfunction.Package) []webfunction.Endpoint {
+func visibleEndpoints(pkg *webfunction.Package, includePrivate bool) []webfunction.Endpoint {
 	out := make([]webfunction.Endpoint, 0, len(pkg.Endpoints))
 	for _, ep := range pkg.Endpoints {
-		if ep.HasFlag("private") {
+		if !includePrivate && ep.HasFlag("private") {
 			continue
 		}
 		out = append(out, ep)
