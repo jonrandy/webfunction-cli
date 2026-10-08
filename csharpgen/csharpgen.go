@@ -129,6 +129,8 @@ import (
 	"strings"
 
 	"github.com/webfunction-protocol/webfunction-go"
+
+	"wfn/privatefilter"
 )
 
 // LibraryReference documents, in the generated header comment, what the
@@ -141,11 +143,17 @@ const LibraryReference = "webfunction-csharp (the WebFunction namespace)"
 // namespace is sanitized into a C# namespace (see names.go's
 // csharpNamespace) - the shared --namespace flag maps onto C#'s own
 // dot-separated namespace convention, PascalCased per segment.
-func Generate(pkg *webfunction.Package, sourceURL, namespace string) (string, error) {
+//
+// Anything flagged "private" - endpoints, arguments, and attributes - is
+// left out of the generated code unless includePrivate is true.
+func Generate(pkg *webfunction.Package, sourceURL, namespace string, includePrivate bool) (string, error) {
 	ns := csharpNamespace(namespace)
 
+	if !includePrivate {
+		pkg = privatefilter.Apply(pkg)
+	}
 	records := newRecordSet(pkg)
-	endpoints := visibleEndpoints(pkg)
+	endpoints := visibleEndpoints(pkg, includePrivate)
 
 	// Pre-compute every endpoint's shapes first, so record/enum
 	// resolution (which mutates records as it goes, same as gogen's
@@ -268,10 +276,10 @@ func forEndpointReturn(records *recordSet, ep webfunction.Endpoint) localTypes {
 	}
 }
 
-func visibleEndpoints(pkg *webfunction.Package) []webfunction.Endpoint {
+func visibleEndpoints(pkg *webfunction.Package, includePrivate bool) []webfunction.Endpoint {
 	out := make([]webfunction.Endpoint, 0, len(pkg.Endpoints))
 	for _, ep := range pkg.Endpoints {
-		if ep.HasFlag("private") {
+		if !includePrivate && ep.HasFlag("private") {
 			continue
 		}
 		out = append(out, ep)

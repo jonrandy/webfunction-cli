@@ -14,3 +14,9 @@ directly and calls `openapiconvert.Generate` / `postmanconvert.Generate`
   appear in either output; with `includePrivate` true, all appear in the
   OpenAPI output, and the argument ones in Postman (which only renders
   request bodies, not response attributes).
+
+`private-flag.json` is also used to check every codegen target (`js`, `php`,
+`python`, `java`, `csharp`, `go`, `ruby`): by default no private name may
+appear in the generated code; with `includePrivate` all of them do (except
+where a target never renders a given member, e.g. ruby's object-argument
+hashes).

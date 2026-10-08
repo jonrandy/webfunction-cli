@@ -62,6 +62,8 @@ import (
 	"strings"
 
 	"github.com/webfunction-protocol/webfunction-go"
+
+	"wfn/privatefilter"
 )
 
 // ImportPath is the Go module path the generated file imports - the
@@ -72,11 +74,17 @@ const ImportPath = "github.com/webfunction-protocol/webfunction-go"
 // namespace is sanitized into a Go package name (see names.go's
 // packageName) - the shared --namespace flag doesn't map onto Go's own
 // package-naming convention directly.
-func Generate(pkg *webfunction.Package, sourceURL, namespace string) (string, error) {
+//
+// Anything flagged "private" - endpoints, arguments, and attributes - is
+// left out of the generated code unless includePrivate is true.
+func Generate(pkg *webfunction.Package, sourceURL, namespace string, includePrivate bool) (string, error) {
 	pkgName := packageName(namespace)
 
+	if !includePrivate {
+		pkg = privatefilter.Apply(pkg)
+	}
 	structs := newStructSet(pkg)
-	endpoints := visibleEndpoints(pkg)
+	endpoints := visibleEndpoints(pkg, includePrivate)
 
 	// Pre-compute every endpoint's shapes first, so struct resolution
 	// (which mutates structs as it goes, same as jsgen's typedefSet) is
@@ -192,10 +200,10 @@ func forEndpointReturn(structs *structSet, ep webfunction.Endpoint) localStructs
 	}
 }
 
-func visibleEndpoints(pkg *webfunction.Package) []webfunction.Endpoint {
+func visibleEndpoints(pkg *webfunction.Package, includePrivate bool) []webfunction.Endpoint {
 	out := make([]webfunction.Endpoint, 0, len(pkg.Endpoints))
 	for _, ep := range pkg.Endpoints {
-		if ep.HasFlag("private") {
+		if !includePrivate && ep.HasFlag("private") {
 			continue
 		}
 		out = append(out, ep)

@@ -57,18 +57,26 @@ import (
 	"strings"
 
 	"github.com/webfunction-protocol/webfunction-go"
+
+	"wfn/privatefilter"
 )
 
 // Generate builds a typed PHP client for pkg, targeting webfunction-php.
 // namespace is the PHP namespace for the generated class (validated: each
 // backslash-separated segment must be a valid PHP identifier).
-func Generate(pkg *webfunction.Package, sourceURL, namespace string) (string, error) {
+//
+// Anything flagged "private" - endpoints, arguments, and attributes - is
+// left out of the generated code unless includePrivate is true.
+func Generate(pkg *webfunction.Package, sourceURL, namespace string, includePrivate bool) (string, error) {
 	if err := validateNamespace(namespace); err != nil {
 		return "", err
 	}
+	if !includePrivate {
+		pkg = privatefilter.Apply(pkg)
+	}
 
 	aliases := newAliasSet(pkg)
-	endpoints := visibleEndpoints(pkg)
+	endpoints := visibleEndpoints(pkg, includePrivate)
 
 	// Pre-compute every endpoint's shapes first, so alias resolution
 	// (which mutates aliases as it goes, same as jsgen's typedefSet) is
@@ -399,10 +407,10 @@ func aliasesReferencedIn(shape string, aliases *aliasSet) []string {
 	return found
 }
 
-func visibleEndpoints(pkg *webfunction.Package) []webfunction.Endpoint {
+func visibleEndpoints(pkg *webfunction.Package, includePrivate bool) []webfunction.Endpoint {
 	out := make([]webfunction.Endpoint, 0, len(pkg.Endpoints))
 	for _, ep := range pkg.Endpoints {
-		if ep.HasFlag("private") {
+		if !includePrivate && ep.HasFlag("private") {
 			continue
 		}
 		out = append(out, ep)

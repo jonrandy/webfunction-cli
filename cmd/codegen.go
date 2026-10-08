@@ -26,6 +26,11 @@ func init() {
 // implements.
 var validTargets = []string{"java", "go", "php", "js", "csharp", "ruby", "python"}
 
+// privateTargets is the subset of validTargets that honors --private
+// (including private endpoints, arguments, and attributes in the
+// generated code). The rest always exclude them, for now.
+var privateTargets = []string{"js", "php", "python", "java", "csharp", "go", "ruby"}
+
 // defaultNamespace is --namespace's default, used by any target that
 // needs one (php, go, java, csharp).
 const defaultNamespace = "WebFunctionClient"
@@ -53,6 +58,8 @@ Flags (optional):
   --namespace  Namespace/module for the generated class (currently for: php, go, java, csharp, ruby). Default: ` + defaultNamespace + `
                Not used by --target python: Python's own import system
                already provides namespacing, so there's nothing to set.
+  --private    Include endpoints, arguments, and attributes flagged private
+               in the generated code (default: excluded). Currently for: js, php, python, java, csharp, go, ruby
 
 Note: --target ruby writes TWO files - the -o path (a .rb source file with
 a real generated wrapper class) plus a companion .rbs signature file at
@@ -70,6 +77,7 @@ func (c *CodegenCommand) Run(args []string) error {
 	url := fs.String("url", "", "URL of the webfunction package")
 	output := fs.String("o", "", "output file name")
 	namespace := fs.String("namespace", defaultNamespace, "namespace/module for the generated class (currently for: php, go, java, csharp, ruby)")
+	private := fs.Bool("private", false, "include endpoints, arguments, and attributes flagged private (currently for: js, php, python, java, csharp, go, ruby)")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -104,42 +112,49 @@ func (c *CodegenCommand) Run(args []string) error {
 		name = "(unnamed package)"
 	}
 	fmt.Printf("Fetched %s (%d endpoint(s)) from %s\n", name, len(pkg.Endpoints), *url)
+	if *private {
+		if contains(privateTargets, *target) {
+			fmt.Println("Including private endpoints, arguments, and attributes (--private)")
+		} else {
+			fmt.Printf("Note: --private is not yet supported for --target %s; private items are excluded\n", *target)
+		}
+	}
 
 	var source string
 	var rubyRbs string
 	switch *target {
 	case "js":
-		source, err = jsgen.Generate(pkg, *url)
+		source, err = jsgen.Generate(pkg, *url, *private)
 		if err != nil {
 			return fmt.Errorf("generating js: %w", err)
 		}
 	case "php":
-		source, err = phpgen.Generate(pkg, *url, *namespace)
+		source, err = phpgen.Generate(pkg, *url, *namespace, *private)
 		if err != nil {
 			return fmt.Errorf("generating php: %w", err)
 		}
 	case "go":
-		source, err = gogen.Generate(pkg, *url, *namespace)
+		source, err = gogen.Generate(pkg, *url, *namespace, *private)
 		if err != nil {
 			return fmt.Errorf("generating go: %w", err)
 		}
 	case "java":
-		source, err = javagen.Generate(pkg, *url, *namespace)
+		source, err = javagen.Generate(pkg, *url, *namespace, *private)
 		if err != nil {
 			return fmt.Errorf("generating java: %w", err)
 		}
 	case "csharp":
-		source, err = csharpgen.Generate(pkg, *url, *namespace)
+		source, err = csharpgen.Generate(pkg, *url, *namespace, *private)
 		if err != nil {
 			return fmt.Errorf("generating csharp: %w", err)
 		}
 	case "ruby":
-		source, rubyRbs, err = rubygen.Generate(pkg, *url, *namespace)
+		source, rubyRbs, err = rubygen.Generate(pkg, *url, *namespace, *private)
 		if err != nil {
 			return fmt.Errorf("generating ruby: %w", err)
 		}
 	case "python":
-		source, err = pythongen.Generate(pkg, *url)
+		source, err = pythongen.Generate(pkg, *url, *private)
 		if err != nil {
 			return fmt.Errorf("generating python: %w", err)
 		}
@@ -165,8 +180,12 @@ func (c *CodegenCommand) Run(args []string) error {
 }
 
 func isValidTarget(target string) bool {
-	for _, t := range validTargets {
-		if t == target {
+	return contains(validTargets, target)
+}
+
+func contains(list []string, s string) bool {
+	for _, v := range list {
+		if v == s {
 			return true
 		}
 	}
