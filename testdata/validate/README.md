@@ -95,6 +95,24 @@ func main() {
   the repeated `"red"` - confirming the element type (not the array
   type) is what's actually being checked, and that a valid string
   choice against an array<string> field is no longer a false positive.
+- **generics-clean.json** - valid generic usage: single, union and
+  nested applications (`list<user>`, `list<user|null>`,
+  `page<page<user>>`), an application inside an array element
+  (`array<pair<number>>`), and an argument-context generic
+  (`filter<string>`). Must produce **zero** findings.
+- **generics-flawed.json** - one of each generics problem: 8 distinct
+  error checks plus 1 warning (9 errors / 1 warning in total, because
+  `generic-application-in-object` fires for two objects):
+  `generic-unapplied`, `generic-argument-on-static-object`,
+  `generic-application-key-count`, `generic-application-key-prefix`,
+  `generic-application-argument`, `dangling-object-ref` (a ghost inside
+  an application's argument), `generic-application-in-object` (`holder`,
+  and `nested-holder`, whose nested application must be reported once,
+  not per level), `generic-name-collision` (a user-defined `ListOfUser`
+  clashing with the generated one) and the
+  `generic-argument-unused-in-context` warning. Unlike the other
+  fixtures, these two are asserted by real tests in
+  `validate/generics_test.go`.
 
 ## Spec pages resolved several open questions (Jon asked about /error, /package)
 

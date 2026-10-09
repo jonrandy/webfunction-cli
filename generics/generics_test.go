@@ -66,6 +66,9 @@ func TestNonGenericPackagesUnchanged(t *testing.T) {
 	}
 	checked := 0
 	for _, f := range files {
+		if strings.HasPrefix(filepath.Base(f), "generics-") {
+			continue // these fixtures use generics on purpose
+		}
 		raw, err := os.ReadFile(f)
 		if err != nil {
 			t.Fatal(err)
@@ -295,5 +298,53 @@ func TestIsGeneric(t *testing.T) {
 	pkg := load(t, `"object.user"`, userObj+","+listObj+","+pairObj)
 	if IsGeneric(pkg.Object("user")) || !IsGeneric(pkg.Object("list")) || !IsGeneric(pkg.Object("pair")) {
 		t.Error("IsGeneric wrong")
+	}
+}
+
+func TestUsesParam(t *testing.T) {
+	filter := `{"name":"filter","arguments":[{"name":"value","type":"T"}]}`
+	pkg := load(t, `"object.user"`, userObj+","+listObj+","+filter)
+	cases := []struct {
+		object string
+		ctx    webfunction.ObjectContext
+		want   bool
+	}{
+		{"list", webfunction.AttributeContext, true},
+		{"list", webfunction.ArgumentContext, false},
+		{"filter", webfunction.ArgumentContext, true},
+		{"filter", webfunction.AttributeContext, false},
+		{"user", webfunction.AttributeContext, false},
+	}
+	for _, c := range cases {
+		if got := UsesParam(pkg.Object(c.object), c.ctx); got != c.want {
+			t.Errorf("UsesParam(%s, %v) = %v, want %v", c.object, c.ctx, got, c.want)
+		}
+	}
+	if UsesParam(nil, webfunction.AttributeContext) {
+		t.Error("nil object must not use a parameter")
+	}
+}
+
+func TestCollisions(t *testing.T) {
+	taken := `{"name":"ListOfUser","attributes":[{"name":"x","type":"string"}]}`
+	pkg := load(t, `{"object.list":"object.user"}`, userObj+","+listObj+","+taken)
+	got := Collisions(pkg)
+	if len(got) != 1 || got[0].Name != "ListOfUser" || got[0].Application != "list<object.user>" {
+		t.Errorf("collisions: %+v", got)
+	}
+
+	// No user-defined clash: no collision.
+	if c := Collisions(load(t, `{"object.list":"object.user"}`, userObj+","+listObj)); len(c) != 0 {
+		t.Errorf("unexpected collisions: %+v", c)
+	}
+
+	// Two instantiations flattening to the same name are suffixed, not a
+	// user-facing collision.
+	raw := `{"base_url":"https://x","endpoints":[
+	  {"name":"a","returns":{"object.list":[["string"],"null"]},"arguments":[]},
+	  {"name":"b","returns":{"object.list":[["string","null"]]},"arguments":[]}],
+	  "objects":[` + listObj + `]}`
+	if c := Collisions(loadRaw(t, raw)); len(c) != 0 {
+		t.Errorf("flattening clash is not a collision: %+v", c)
 	}
 }

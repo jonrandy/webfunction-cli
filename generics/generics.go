@@ -34,13 +34,22 @@ const maxDepth = 32
 // IsGeneric reports whether the object uses the type parameter "T" in any
 // member type of either context.
 func IsGeneric(o *webfunction.Object) bool {
+	return UsesParam(o, webfunction.ArgumentContext) || UsesParam(o, webfunction.AttributeContext)
+}
+
+// UsesParam reports whether the object uses the type parameter "T" in the
+// member types of one specific context.
+func UsesParam(o *webfunction.Object, ctx webfunction.ObjectContext) bool {
 	if o == nil {
 		return false
 	}
-	for _, a := range o.Arguments {
-		if hasParam(a.Type) {
-			return true
+	if ctx == webfunction.ArgumentContext {
+		for _, a := range o.Arguments {
+			if hasParam(a.Type) {
+				return true
+			}
 		}
+		return false
 	}
 	for _, a := range o.Attributes {
 		if hasParam(a.Type) {
@@ -48,6 +57,25 @@ func IsGeneric(o *webfunction.Object) bool {
 		}
 	}
 	return false
+}
+
+// Collision records a generated object whose natural name was already
+// taken by a user-defined object. Expand renames the generated object
+// (with a numeric suffix) so output stays valid; Collisions lets a
+// validator report the clash.
+type Collision struct {
+	// Name is the clashing object name.
+	Name string
+	// Application is the canonical form of the application that generated
+	// it, e.g. "list<object.user>".
+	Application string
+}
+
+// Collisions returns every generated-object name that clashes with a
+// user-defined object in pkg, in the order they were encountered.
+func Collisions(pkg *webfunction.Package) []Collision {
+	_, e := expand(pkg)
+	return e.collisions
 }
 
 func isParam(a webfunction.TypeAlt) bool {
@@ -78,14 +106,21 @@ func hasParam(t webfunction.Type) bool {
 // order they were first needed (an application's argument is expanded
 // before the application itself, so inner instantiations come first).
 func Expand(pkg *webfunction.Package) *webfunction.Package {
+	out, _ := expand(pkg)
+	return out
+}
+
+func expand(pkg *webfunction.Package) (*webfunction.Package, *expander) {
 	e := &expander{
 		templates: map[string]*webfunction.Object{},
 		names:     map[string]bool{},
+		userNames: map[string]bool{},
 		instances: map[string]string{},
 	}
 	for i := range pkg.Objects {
 		o := &pkg.Objects[i]
 		e.names[o.Name] = true
+		e.userNames[o.Name] = true
 		if IsGeneric(o) {
 			e.templates[o.Name] = o
 		}
@@ -118,14 +153,16 @@ func Expand(pkg *webfunction.Package) *webfunction.Package {
 	} else {
 		out.Objects = objs
 	}
-	return &out
+	return &out, e
 }
 
 type expander struct {
-	templates map[string]*webfunction.Object // generic objects by name
-	names     map[string]bool                // every object name in use
-	instances map[string]string              // canonical application -> generated name
-	out       []webfunction.Object           // generated objects, in completion order
+	templates  map[string]*webfunction.Object // generic objects by name
+	names      map[string]bool                // every object name in use
+	userNames  map[string]bool                // names of the package's own objects
+	instances  map[string]string              // canonical application -> generated name
+	out        []webfunction.Object           // generated objects, in completion order
+	collisions []Collision                    // generated names that clashed with userNames
 }
 
 func (e *expander) arguments(in []webfunction.Argument, depth int) []webfunction.Argument {
@@ -201,7 +238,7 @@ func (e *expander) instantiate(tmpl *webfunction.Object, arg webfunction.Type, d
 	if name, ok := e.instances[key]; ok {
 		return ref(name)
 	}
-	name := e.uniqueName(pascal(tmpl.Name) + "Of" + typeName(arg))
+	name := e.uniqueName(pascal(tmpl.Name)+"Of"+typeName(arg), key)
 	e.instances[key] = name
 
 	obj := webfunction.Object{Name: name}
@@ -232,7 +269,10 @@ func ref(name string) webfunction.TypeAlt {
 // uniqueName reserves and returns base, or base with a numeric suffix if
 // the name is already taken (by a user-defined object, or by another
 // instantiation that flattens to the same name).
-func (e *expander) uniqueName(base string) string {
+func (e *expander) uniqueName(base, application string) string {
+	if e.userNames[base] {
+		e.collisions = append(e.collisions, Collision{Name: base, Application: application})
+	}
 	name := base
 	for i := 2; e.names[name]; i++ {
 		name = base + strconv.Itoa(i)

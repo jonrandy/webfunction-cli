@@ -1,0 +1,32 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Generics Flawed API",
+  "objects": [
+    { "name": "user", "attributes": [{ "name": "id", "type": "string" }] },
+    {
+      "name": "list",
+      "attributes": [
+        { "name": "total", "type": "number" },
+        { "name": "items", "type": [["T"]] }
+      ]
+    },
+    {
+      "name": "mixed",
+      "arguments": [{ "name": "plain", "type": "string" }],
+      "attributes": [{ "name": "value", "type": "T" }]
+    },
+    { "name": "holder", "attributes": [{ "name": "inner", "type": { "object.list": "object.user" } }] },
+    { "name": "nested-holder", "attributes": [{ "name": "deep", "type": { "object.list": { "object.list": "object.user" } } }] },
+    { "name": "ListOfUser", "attributes": [{ "name": "x", "type": "string" }] }
+  ],
+  "endpoints": [
+    { "name": "unapplied", "returns": "object.list", "arguments": [] },
+    { "name": "static-arg", "returns": { "object.user": "string" }, "arguments": [] },
+    { "name": "empty-app", "returns": {}, "arguments": [] },
+    { "name": "bad-key", "returns": { "string": "object.user" }, "arguments": [] },
+    { "name": "bad-arg", "returns": { "object.list": 5 }, "arguments": [] },
+    { "name": "ghost-arg", "returns": { "object.list": "object.ghost" }, "arguments": [] },
+    { "name": "wrong-context", "returns": "object.user", "arguments": [{ "name": "m", "type": { "object.mixed": "string" } }] },
+    { "name": "collides", "returns": { "object.list": "object.user" }, "arguments": [] }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Generics Clean API",
+  "objects": [
+    { "name": "user", "attributes": [{ "name": "id", "type": "string" }] },
+    {
+      "name": "list",
+      "attributes": [
+        { "name": "total", "type": "number" },
+        { "name": "items", "type": [["T"]] }
+      ]
+    },
+    {
+      "name": "pair",
+      "attributes": [
+        { "name": "first", "type": "T" },
+        { "name": "second", "type": "T" }
+      ]
+    },
+    { "name": "page", "attributes": [{ "name": "results", "type": [["T"]] }] },
+    { "name": "filter", "arguments": [{ "name": "value", "type": "T", "flags": ["required"] }] }
+  ],
+  "endpoints": [
+    {
+      "name": "list-users",
+      "returns": { "object.list": "object.user" },
+      "arguments": [{ "name": "filter", "type": { "object.filter": "string" } }]
+    },
+    { "name": "list-optional-users", "returns": { "object.list": ["object.user", "null"] }, "arguments": [] },
+    { "name": "nested-pages", "returns": { "object.page": { "object.page": "object.user" } }, "arguments": [] },
+    { "name": "pairs", "returns": [[{ "object.pair": "number" }]], "arguments": [] }
+  ]
+}
