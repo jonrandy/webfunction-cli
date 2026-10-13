@@ -79,7 +79,7 @@ func Collisions(pkg *webfunction.Package) []Collision {
 }
 
 func isParam(a webfunction.TypeAlt) bool {
-	return a.Base == "T" && a.Refinement == "" && a.Of == nil && a.Arg == nil
+	return a.Param
 }
 
 func hasParam(t webfunction.Type) bool {
