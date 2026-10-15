@@ -1,0 +1,149 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Flawed Example API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ],
+  "paths": {
+    "/get-anything": {
+      "post": {
+        "operationId": "getAnything",
+        "summary": "get-anything",
+        "parameters": [
+          {
+            "name": "Api-Version",
+            "in": "header",
+            "description": "The package version to call against.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-blob": {
+      "post": {
+        "operationId": "getBlob",
+        "summary": "get-blob",
+        "parameters": [
+          {
+            "name": "Api-Version",
+            "in": "header",
+            "description": "The package version to call against.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/list-people": {
+      "post": {
+        "operationId": "listPeople",
+        "summary": "list-people",
+        "parameters": [
+          {
+            "name": "Api-Version",
+            "in": "header",
+            "description": "The package version to call against.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Ghost": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    }
+  },
+  "x-webfunction-versioned": true,
+  "x-webfunction-package-errors": [
+    {
+      "code": "RATE_LIMITED",
+      "docs": "Too many requests."
+    }
+  ]
+}

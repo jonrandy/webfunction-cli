@@ -1,0 +1,104 @@
+{
+  "info": {
+    "name": "Private Flag Convert Test",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "internal-sync",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sync_secret\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/internal-sync",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "internal-sync"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get-person",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"\",\n  \"debug_trace\": false,\n  \"filter\": {\n    \"status\": \"\",\n    \"hidden_override\": \"\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/get-person",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "get-person"
+          ]
+        }
+      }
+    },
+    {
+      "name": "list-notes",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/list-notes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "list-notes"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.example.com"
+    }
+  ]
+}

@@ -1,0 +1,5002 @@
+diff --git a/openapiconvert/golden_test.go b/openapiconvert/golden_test.go
+new file mode 100644
+index 0000000..8c9d8e4
+--- /dev/null
++++ b/openapiconvert/golden_test.go
+@@ -0,0 +1,101 @@
++package openapiconvert
++
++import (
++	"encoding/json"
++	"flag"
++	"os"
++	"path/filepath"
++	"strings"
++	"testing"
++
++	"github.com/webfunction-protocol/webfunction-go"
++)
++
++var update = flag.Bool("update", false, "rewrite the golden files from the current converter output")
++
++// goldenInputs lists the fixture packages whose OpenAPI output is pinned
++// byte-for-byte. Fixtures using generics (generics-*.json) are left out on
++// purpose: their output is expected to change as generics support lands.
++func goldenInputs(t *testing.T) []string {
++	t.Helper()
++	var files []string
++	for _, pattern := range []string{"validate/*.json", "convert/*.json"} {
++		matches, err := filepath.Glob(filepath.Join("..", "testdata", pattern))
++		if err != nil {
++			t.Fatal(err)
++		}
++		for _, m := range matches {
++			if strings.HasPrefix(filepath.Base(m), "generics-") {
++				continue
++			}
++			files = append(files, m)
++		}
++	}
++	if len(files) == 0 {
++		t.Fatal("no fixtures found")
++	}
++	return files
++}
++
++func loadPackage(t *testing.T, path string) *webfunction.Package {
++	t.Helper()
++	raw, err := os.ReadFile(path)
++	if err != nil {
++		t.Fatal(err)
++	}
++	var pkg webfunction.Package
++	if err := json.Unmarshal(raw, &pkg); err != nil {
++		t.Fatalf("%s: %v", path, err)
++	}
++	return &pkg
++}
++
++// TestGoldenOutput pins the converter's output for every non-generic
++// fixture, with and without --private, so later changes can prove they
++// leave existing packages byte-identical. Run with -update to rewrite the
++// golden files deliberately.
++func TestGoldenOutput(t *testing.T) {
++	for _, path := range goldenInputs(t) {
++		dir := filepath.Base(filepath.Dir(path))
++		base := strings.TrimSuffix(filepath.Base(path), ".json")
++		for _, includePrivate := range []bool{false, true} {
++			mode := "public"
++			if includePrivate {
++				mode = "private"
++			}
++			name := dir + "-" + base + "." + mode
++			t.Run(name, func(t *testing.T) {
++				got, err := Generate(loadPackage(t, path), includePrivate)
++				if err != nil {
++					t.Fatal(err)
++				}
++				// Generate must be deterministic, or a golden comparison is meaningless.
++				again, err := Generate(loadPackage(t, path), includePrivate)
++				if err != nil {
++					t.Fatal(err)
++				}
++				if got != again {
++					t.Fatal("Generate is not deterministic")
++				}
++
++				golden := filepath.Join("..", "testdata", "convert", "golden", "openapi", name+".json")
++				if *update {
++					if err := os.MkdirAll(filepath.Dir(golden), 0o755); err != nil {
++						t.Fatal(err)
++					}
++					if err := os.WriteFile(golden, []byte(got), 0o644); err != nil {
++						t.Fatal(err)
++					}
++					return
++				}
++				want, err := os.ReadFile(golden)
++				if err != nil {
++					t.Fatalf("%v (run go test -update to create it)", err)
++				}
++				if got != string(want) {
++					t.Errorf("output differs from %s", golden)
++				}
++			})
++		}
++	}
++}
+diff --git a/postmanconvert/golden_test.go b/postmanconvert/golden_test.go
+new file mode 100644
+index 0000000..91f8b0e
+--- /dev/null
++++ b/postmanconvert/golden_test.go
+@@ -0,0 +1,101 @@
++package postmanconvert
++
++import (
++	"encoding/json"
++	"flag"
++	"os"
++	"path/filepath"
++	"strings"
++	"testing"
++
++	"github.com/webfunction-protocol/webfunction-go"
++)
++
++var update = flag.Bool("update", false, "rewrite the golden files from the current converter output")
++
++// goldenInputs lists the fixture packages whose Postman collection output is pinned
++// byte-for-byte. Fixtures using generics (generics-*.json) are left out on
++// purpose: their output is expected to change as generics support lands.
++func goldenInputs(t *testing.T) []string {
++	t.Helper()
++	var files []string
++	for _, pattern := range []string{"validate/*.json", "convert/*.json"} {
++		matches, err := filepath.Glob(filepath.Join("..", "testdata", pattern))
++		if err != nil {
++			t.Fatal(err)
++		}
++		for _, m := range matches {
++			if strings.HasPrefix(filepath.Base(m), "generics-") {
++				continue
++			}
++			files = append(files, m)
++		}
++	}
++	if len(files) == 0 {
++		t.Fatal("no fixtures found")
++	}
++	return files
++}
++
++func loadPackage(t *testing.T, path string) *webfunction.Package {
++	t.Helper()
++	raw, err := os.ReadFile(path)
++	if err != nil {
++		t.Fatal(err)
++	}
++	var pkg webfunction.Package
++	if err := json.Unmarshal(raw, &pkg); err != nil {
++		t.Fatalf("%s: %v", path, err)
++	}
++	return &pkg
++}
++
++// TestGoldenOutput pins the converter's output for every non-generic
++// fixture, with and without --private, so later changes can prove they
++// leave existing packages byte-identical. Run with -update to rewrite the
++// golden files deliberately.
++func TestGoldenOutput(t *testing.T) {
++	for _, path := range goldenInputs(t) {
++		dir := filepath.Base(filepath.Dir(path))
++		base := strings.TrimSuffix(filepath.Base(path), ".json")
++		for _, includePrivate := range []bool{false, true} {
++			mode := "public"
++			if includePrivate {
++				mode = "private"
++			}
++			name := dir + "-" + base + "." + mode
++			t.Run(name, func(t *testing.T) {
++				got, err := Generate(loadPackage(t, path), includePrivate)
++				if err != nil {
++					t.Fatal(err)
++				}
++				// Generate must be deterministic, or a golden comparison is meaningless.
++				again, err := Generate(loadPackage(t, path), includePrivate)
++				if err != nil {
++					t.Fatal(err)
++				}
++				if got != again {
++					t.Fatal("Generate is not deterministic")
++				}
++
++				golden := filepath.Join("..", "testdata", "convert", "golden", "postman", name+".json")
++				if *update {
++					if err := os.MkdirAll(filepath.Dir(golden), 0o755); err != nil {
++						t.Fatal(err)
++					}
++					if err := os.WriteFile(golden, []byte(got), 0o644); err != nil {
++						t.Fatal(err)
++					}
++					return
++				}
++				want, err := os.ReadFile(golden)
++				if err != nil {
++					t.Fatalf("%v (run go test -update to create it)", err)
++				}
++				if got != string(want) {
++					t.Errorf("output differs from %s", golden)
++				}
++			})
++		}
++	}
++}
+diff --git a/testdata/convert/README.md b/testdata/convert/README.md
+index 777bb11..eb2856a 100644
+--- a/testdata/convert/README.md
++++ b/testdata/convert/README.md
+@@ -1,9 +1,12 @@
+ # testdata/convert/
+ 
+-Fixtures for `wfn convert`. Like `testdata/validate/`, not wired into
+-`go test`; exercised by a throwaway harness that reads the fixture JSON
+-directly and calls `openapiconvert.Generate` / `postmanconvert.Generate`
+-(second argument is `includePrivate`).
++Fixtures for `wfn convert`. Every fixture here, plus the non-generic ones in
++`testdata/validate/` (the `generics-*` ones are skipped on purpose), is run
++through `openapiconvert.Generate` / `postmanconvert.Generate` by
++`golden_test.go` in each package, with and without `includePrivate`, and
++compared byte-for-byte with `golden/{openapi,postman}/<dir>-<fixture>.<public|private>.json`.
++After an intended output change, regenerate with `go test ./openapiconvert
++./postmanconvert -run TestGoldenOutput -update` and review the diff.
+ 
+ - **private-flag.json** - `private` at every level it's allowed: one
+   private endpoint (with an argument), a private argument on a public
+@@ -15,6 +18,13 @@ directly and calls `openapiconvert.Generate` / `postmanconvert.Generate`
+   OpenAPI output, and the argument ones in Postman (which only renders
+   request bodies, not response attributes).
+ 
++- **types.json** - every type form: each string and number refinement, plain
++  `number`/`boolean`/`any`, bare `array`/`object`, array-of, nullable and
++  non-null unions, `choices` and `values`, a paginated endpoint, an object
++  used in both argument and attribute context (`address`), and a
++  self-referential object (`node`). Exists so the golden files reach the
++  type-mapping code in both converters.
++
+ `private-flag.json` is also used to check every codegen target (`js`, `php`,
+ `python`, `java`, `csharp`, `go`, `ruby`): by default no private name may
+ appear in the generated code; with `includePrivate` all of them do (except
+diff --git a/testdata/convert/golden/openapi/convert-private-flag.private.json b/testdata/convert/golden/openapi/convert-private-flag.private.json
+new file mode 100644
+index 0000000..64957ea
+--- /dev/null
++++ b/testdata/convert/golden/openapi/convert-private-flag.private.json
+@@ -0,0 +1,158 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Private Flag Convert Test",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/get-person": {
++      "post": {
++        "operationId": "getPerson",
++        "summary": "get-person",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "debug_trace": {
++                    "type": "boolean"
++                  },
++                  "filter": {
++                    "$ref": "#/components/schemas/FilterInput"
++                  },
++                  "id": {
++                    "type": "string"
++                  }
++                },
++                "required": [
++                  "id"
++                ],
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Person"
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/internal-sync": {
++      "post": {
++        "operationId": "internalSync",
++        "summary": "internal-sync",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "sync_secret": {
++                    "type": "string"
++                  }
++                },
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "boolean"
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/list-notes": {
++      "post": {
++        "operationId": "listNotes",
++        "summary": "list-notes",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "array",
++                  "items": {
++                    "type": "object",
++                    "properties": {
++                      "internal_flag": {
++                        "type": "boolean"
++                      },
++                      "text": {
++                        "type": "string"
++                      }
++                    }
++                  }
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "FilterInput": {
++        "type": "object",
++        "properties": {
++          "hidden_override": {
++            "type": "string"
++          },
++          "status": {
++            "type": "string"
++          }
++        },
++        "additionalProperties": false
++      },
++      "Person": {
++        "type": "object",
++        "properties": {
++          "audit_ref": {
++            "type": "string"
++          },
++          "name": {
++            "type": "string"
++          }
++        }
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/convert-private-flag.public.json b/testdata/convert/golden/openapi/convert-private-flag.public.json
+new file mode 100644
+index 0000000..4b71ced
+--- /dev/null
++++ b/testdata/convert/golden/openapi/convert-private-flag.public.json
+@@ -0,0 +1,112 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Private Flag Convert Test",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/get-person": {
++      "post": {
++        "operationId": "getPerson",
++        "summary": "get-person",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "filter": {
++                    "$ref": "#/components/schemas/FilterInput"
++                  },
++                  "id": {
++                    "type": "string"
++                  }
++                },
++                "required": [
++                  "id"
++                ],
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Person"
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/list-notes": {
++      "post": {
++        "operationId": "listNotes",
++        "summary": "list-notes",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "array",
++                  "items": {
++                    "type": "object",
++                    "properties": {
++                      "text": {
++                        "type": "string"
++                      }
++                    }
++                  }
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "FilterInput": {
++        "type": "object",
++        "properties": {
++          "status": {
++            "type": "string"
++          }
++        },
++        "additionalProperties": false
++      },
++      "Person": {
++        "type": "object",
++        "properties": {
++          "name": {
++            "type": "string"
++          }
++        }
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/convert-types.private.json b/testdata/convert/golden/openapi/convert-types.private.json
+new file mode 100644
+index 0000000..b54c7f2
+--- /dev/null
++++ b/testdata/convert/golden/openapi/convert-types.private.json
+@@ -0,0 +1,564 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Type Coverage Convert Test",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/create-account": {
++      "post": {
++        "operationId": "createAccount",
++        "summary": "create-account",
++        "description": "Exercises every argument type form.",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "active": {
++                    "type": "boolean"
++                  },
++                  "age": {
++                    "type": "number",
++                    "format": "int32",
++                    "minimum": 0
++                  },
++                  "anything": {},
++                  "avatar": {
++                    "type": "string",
++                    "format": "byte"
++                  },
++                  "big": {
++                    "type": "number",
++                    "format": "int64",
++                    "minimum": 0
++                  },
++                  "birthday": {
++                    "type": "string",
++                    "format": "date"
++                  },
++                  "contact": {
++                    "oneOf": [
++                      {
++                        "type": "string",
++                        "format": "email"
++                      },
++                      {
++                        "type": "number"
++                      }
++                    ]
++                  },
++                  "delta": {
++                    "type": "number",
++                    "format": "int32"
++                  },
++                  "email": {
++                    "type": "string",
++                    "format": "email"
++                  },
++                  "feed": {
++                    "type": "string",
++                    "format": "uri"
++                  },
++                  "home": {
++                    "$ref": "#/components/schemas/AddressInput"
++                  },
++                  "homepage": {
++                    "type": "string",
++                    "format": "uri"
++                  },
++                  "host": {
++                    "type": "string",
++                    "format": "hostname"
++                  },
++                  "huge_delta": {
++                    "type": "number",
++                    "format": "int64"
++                  },
++                  "id": {
++                    "type": "string",
++                    "format": "uuid"
++                  },
++                  "joined_at": {
++                    "type": "number",
++                    "format": "int64",
++                    "description": "Unix timestamp (seconds since the epoch)."
++                  },
++                  "last_login": {
++                    "type": "string",
++                    "format": "date-time"
++                  },
++                  "level": {
++                    "type": "number",
++                    "enum": [
++                      1,
++                      2,
++                      3
++                    ]
++                  },
++                  "loose_list": {
++                    "type": "array",
++                    "items": {}
++                  },
++                  "loose_object": {
++                    "type": "object",
++                    "additionalProperties": true
++                  },
++                  "nickname": {
++                    "type": [
++                      "string",
++                      "null"
++                    ]
++                  },
++                  "phone": {
++                    "type": "string",
++                    "description": "Phone number in E.164 format."
++                  },
++                  "precise": {
++                    "type": "number",
++                    "format": "double"
++                  },
++                  "previous_homes": {
++                    "type": "array",
++                    "items": {
++                      "$ref": "#/components/schemas/AddressInput"
++                    }
++                  },
++                  "ratio": {
++                    "type": "number",
++                    "format": "float"
++                  },
++                  "role": {
++                    "type": "string",
++                    "enum": [
++                      "admin",
++                      "member",
++                      "guest"
++                    ]
++                  },
++                  "score": {
++                    "type": "number"
++                  },
++                  "scores": {
++                    "type": "array",
++                    "items": {
++                      "type": "number"
++                    }
++                  },
++                  "tags": {
++                    "type": "array",
++                    "items": {
++                      "type": "string"
++                    }
++                  },
++                  "v4": {
++                    "type": "string",
++                    "format": "ipv4"
++                  },
++                  "v6": {
++                    "type": "string",
++                    "format": "ipv6"
++                  },
++                  "wake_time": {
++                    "type": "string",
++                    "format": "time"
++                  }
++                },
++                "required": [
++                  "email"
++                ],
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Account"
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/find-account": {
++      "post": {
++        "operationId": "findAccount",
++        "summary": "find-account",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "id": {
++                    "type": "string",
++                    "format": "uuid"
++                  }
++                },
++                "required": [
++                  "id"
++                ],
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "oneOf": [
++                    {
++                      "$ref": "#/components/schemas/Account"
++                    },
++                    {
++                      "type": "null"
++                    }
++                  ]
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/get-stats": {
++      "post": {
++        "operationId": "getStats",
++        "summary": "get-stats",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "number"
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/get-tags": {
++      "post": {
++        "operationId": "getTags",
++        "summary": "get-tags",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "array",
++                  "items": {
++                    "type": "string"
++                  }
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/get-tree": {
++      "post": {
++        "operationId": "getTree",
++        "summary": "get-tree",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Node"
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/list-accounts": {
++      "post": {
++        "operationId": "listAccounts",
++        "summary": "list-accounts",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "limit": {
++                    "type": "number",
++                    "format": "int32",
++                    "minimum": 0
++                  }
++                },
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "properties": {
++                    "next": {
++                      "type": [
++                        "object",
++                        "null"
++                      ],
++                      "description": "Opaque pagination cursor, or null if there is no such page."
++                    },
++                    "page": {
++                      "type": "array",
++                      "items": {
++                        "type": "array",
++                        "items": {
++                          "type": "object",
++                          "properties": {
++                            "balance": {
++                              "type": "number",
++                              "format": "double"
++                            },
++                            "id": {
++                              "type": "string",
++                              "format": "uuid"
++                            },
++                            "name": {
++                              "type": "string"
++                            },
++                            "status": {
++                              "type": "string",
++                              "enum": [
++                                "open",
++                                "closed"
++                              ]
++                            }
++                          }
++                        }
++                      }
++                    },
++                    "previous": {
++                      "type": [
++                        "object",
++                        "null"
++                      ],
++                      "description": "Opaque pagination cursor, or null if there is no such page."
++                    }
++                  },
++                  "required": [
++                    "page"
++                  ]
++                }
++              }
++            }
++          }
++        },
++        "x-webfunction-paginated": true
++      }
++    },
++    "/ping": {
++      "post": {
++        "operationId": "ping",
++        "summary": "ping",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "boolean"
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "Account": {
++        "type": "object",
++        "properties": {
++          "active": {
++            "type": "boolean"
++          },
++          "age": {
++            "type": "number",
++            "format": "int32",
++            "minimum": 0
++          },
++          "email": {
++            "type": "string",
++            "format": "email"
++          },
++          "extra": {},
++          "home": {
++            "$ref": "#/components/schemas/Address"
++          },
++          "id": {
++            "type": "string",
++            "format": "uuid"
++          },
++          "nickname": {
++            "type": [
++              "string",
++              "null"
++            ]
++          },
++          "previous_homes": {
++            "type": "array",
++            "items": {
++              "$ref": "#/components/schemas/Address"
++            }
++          },
++          "role": {
++            "type": "string",
++            "enum": [
++              "admin",
++              "member",
++              "guest"
++            ]
++          },
++          "score": {
++            "type": "number"
++          },
++          "tags": {
++            "type": "array",
++            "items": {
++              "type": "string"
++            }
++          }
++        }
++      },
++      "Address": {
++        "type": "object",
++        "properties": {
++          "city": {
++            "type": "string"
++          },
++          "street": {
++            "type": "string"
++          },
++          "verified": {
++            "type": "boolean"
++          }
++        }
++      },
++      "AddressInput": {
++        "type": "object",
++        "properties": {
++          "city": {
++            "type": "string"
++          },
++          "postcode": {
++            "type": "string",
++            "enum": [
++              "10110",
++              "10120"
++            ]
++          },
++          "street": {
++            "type": "string"
++          }
++        },
++        "required": [
++          "street"
++        ],
++        "additionalProperties": false
++      },
++      "Node": {
++        "type": "object",
++        "properties": {
++          "children": {
++            "type": "array",
++            "items": {
++              "$ref": "#/components/schemas/Node"
++            }
++          },
++          "label": {
++            "type": "string"
++          },
++          "parent": {
++            "oneOf": [
++              {
++                "$ref": "#/components/schemas/Node"
++              },
++              {
++                "type": "null"
++              }
++            ]
++          }
++        }
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/convert-types.public.json b/testdata/convert/golden/openapi/convert-types.public.json
+new file mode 100644
+index 0000000..b54c7f2
+--- /dev/null
++++ b/testdata/convert/golden/openapi/convert-types.public.json
+@@ -0,0 +1,564 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Type Coverage Convert Test",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/create-account": {
++      "post": {
++        "operationId": "createAccount",
++        "summary": "create-account",
++        "description": "Exercises every argument type form.",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "active": {
++                    "type": "boolean"
++                  },
++                  "age": {
++                    "type": "number",
++                    "format": "int32",
++                    "minimum": 0
++                  },
++                  "anything": {},
++                  "avatar": {
++                    "type": "string",
++                    "format": "byte"
++                  },
++                  "big": {
++                    "type": "number",
++                    "format": "int64",
++                    "minimum": 0
++                  },
++                  "birthday": {
++                    "type": "string",
++                    "format": "date"
++                  },
++                  "contact": {
++                    "oneOf": [
++                      {
++                        "type": "string",
++                        "format": "email"
++                      },
++                      {
++                        "type": "number"
++                      }
++                    ]
++                  },
++                  "delta": {
++                    "type": "number",
++                    "format": "int32"
++                  },
++                  "email": {
++                    "type": "string",
++                    "format": "email"
++                  },
++                  "feed": {
++                    "type": "string",
++                    "format": "uri"
++                  },
++                  "home": {
++                    "$ref": "#/components/schemas/AddressInput"
++                  },
++                  "homepage": {
++                    "type": "string",
++                    "format": "uri"
++                  },
++                  "host": {
++                    "type": "string",
++                    "format": "hostname"
++                  },
++                  "huge_delta": {
++                    "type": "number",
++                    "format": "int64"
++                  },
++                  "id": {
++                    "type": "string",
++                    "format": "uuid"
++                  },
++                  "joined_at": {
++                    "type": "number",
++                    "format": "int64",
++                    "description": "Unix timestamp (seconds since the epoch)."
++                  },
++                  "last_login": {
++                    "type": "string",
++                    "format": "date-time"
++                  },
++                  "level": {
++                    "type": "number",
++                    "enum": [
++                      1,
++                      2,
++                      3
++                    ]
++                  },
++                  "loose_list": {
++                    "type": "array",
++                    "items": {}
++                  },
++                  "loose_object": {
++                    "type": "object",
++                    "additionalProperties": true
++                  },
++                  "nickname": {
++                    "type": [
++                      "string",
++                      "null"
++                    ]
++                  },
++                  "phone": {
++                    "type": "string",
++                    "description": "Phone number in E.164 format."
++                  },
++                  "precise": {
++                    "type": "number",
++                    "format": "double"
++                  },
++                  "previous_homes": {
++                    "type": "array",
++                    "items": {
++                      "$ref": "#/components/schemas/AddressInput"
++                    }
++                  },
++                  "ratio": {
++                    "type": "number",
++                    "format": "float"
++                  },
++                  "role": {
++                    "type": "string",
++                    "enum": [
++                      "admin",
++                      "member",
++                      "guest"
++                    ]
++                  },
++                  "score": {
++                    "type": "number"
++                  },
++                  "scores": {
++                    "type": "array",
++                    "items": {
++                      "type": "number"
++                    }
++                  },
++                  "tags": {
++                    "type": "array",
++                    "items": {
++                      "type": "string"
++                    }
++                  },
++                  "v4": {
++                    "type": "string",
++                    "format": "ipv4"
++                  },
++                  "v6": {
++                    "type": "string",
++                    "format": "ipv6"
++                  },
++                  "wake_time": {
++                    "type": "string",
++                    "format": "time"
++                  }
++                },
++                "required": [
++                  "email"
++                ],
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Account"
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/find-account": {
++      "post": {
++        "operationId": "findAccount",
++        "summary": "find-account",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "id": {
++                    "type": "string",
++                    "format": "uuid"
++                  }
++                },
++                "required": [
++                  "id"
++                ],
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "oneOf": [
++                    {
++                      "$ref": "#/components/schemas/Account"
++                    },
++                    {
++                      "type": "null"
++                    }
++                  ]
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/get-stats": {
++      "post": {
++        "operationId": "getStats",
++        "summary": "get-stats",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "number"
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/get-tags": {
++      "post": {
++        "operationId": "getTags",
++        "summary": "get-tags",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "array",
++                  "items": {
++                    "type": "string"
++                  }
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/get-tree": {
++      "post": {
++        "operationId": "getTree",
++        "summary": "get-tree",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Node"
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/list-accounts": {
++      "post": {
++        "operationId": "listAccounts",
++        "summary": "list-accounts",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "limit": {
++                    "type": "number",
++                    "format": "int32",
++                    "minimum": 0
++                  }
++                },
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "properties": {
++                    "next": {
++                      "type": [
++                        "object",
++                        "null"
++                      ],
++                      "description": "Opaque pagination cursor, or null if there is no such page."
++                    },
++                    "page": {
++                      "type": "array",
++                      "items": {
++                        "type": "array",
++                        "items": {
++                          "type": "object",
++                          "properties": {
++                            "balance": {
++                              "type": "number",
++                              "format": "double"
++                            },
++                            "id": {
++                              "type": "string",
++                              "format": "uuid"
++                            },
++                            "name": {
++                              "type": "string"
++                            },
++                            "status": {
++                              "type": "string",
++                              "enum": [
++                                "open",
++                                "closed"
++                              ]
++                            }
++                          }
++                        }
++                      }
++                    },
++                    "previous": {
++                      "type": [
++                        "object",
++                        "null"
++                      ],
++                      "description": "Opaque pagination cursor, or null if there is no such page."
++                    }
++                  },
++                  "required": [
++                    "page"
++                  ]
++                }
++              }
++            }
++          }
++        },
++        "x-webfunction-paginated": true
++      }
++    },
++    "/ping": {
++      "post": {
++        "operationId": "ping",
++        "summary": "ping",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "boolean"
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "Account": {
++        "type": "object",
++        "properties": {
++          "active": {
++            "type": "boolean"
++          },
++          "age": {
++            "type": "number",
++            "format": "int32",
++            "minimum": 0
++          },
++          "email": {
++            "type": "string",
++            "format": "email"
++          },
++          "extra": {},
++          "home": {
++            "$ref": "#/components/schemas/Address"
++          },
++          "id": {
++            "type": "string",
++            "format": "uuid"
++          },
++          "nickname": {
++            "type": [
++              "string",
++              "null"
++            ]
++          },
++          "previous_homes": {
++            "type": "array",
++            "items": {
++              "$ref": "#/components/schemas/Address"
++            }
++          },
++          "role": {
++            "type": "string",
++            "enum": [
++              "admin",
++              "member",
++              "guest"
++            ]
++          },
++          "score": {
++            "type": "number"
++          },
++          "tags": {
++            "type": "array",
++            "items": {
++              "type": "string"
++            }
++          }
++        }
++      },
++      "Address": {
++        "type": "object",
++        "properties": {
++          "city": {
++            "type": "string"
++          },
++          "street": {
++            "type": "string"
++          },
++          "verified": {
++            "type": "boolean"
++          }
++        }
++      },
++      "AddressInput": {
++        "type": "object",
++        "properties": {
++          "city": {
++            "type": "string"
++          },
++          "postcode": {
++            "type": "string",
++            "enum": [
++              "10110",
++              "10120"
++            ]
++          },
++          "street": {
++            "type": "string"
++          }
++        },
++        "required": [
++          "street"
++        ],
++        "additionalProperties": false
++      },
++      "Node": {
++        "type": "object",
++        "properties": {
++          "children": {
++            "type": "array",
++            "items": {
++              "$ref": "#/components/schemas/Node"
++            }
++          },
++          "label": {
++            "type": "string"
++          },
++          "parent": {
++            "oneOf": [
++              {
++                "$ref": "#/components/schemas/Node"
++              },
++              {
++                "type": "null"
++              }
++            ]
++          }
++        }
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-array-element-choices.private.json b/testdata/convert/golden/openapi/validate-array-element-choices.private.json
+new file mode 100644
+index 0000000..7abe75d
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-array-element-choices.private.json
+@@ -0,0 +1,67 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Array Choices Test",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/set-tags": {
++      "post": {
++        "operationId": "setTags",
++        "summary": "set-tags",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "bad-tags": {
++                    "type": "array",
++                    "items": {
++                      "type": "string",
++                      "enum": [
++                        "red",
++                        42,
++                        "red"
++                      ]
++                    }
++                  },
++                  "tags": {
++                    "type": "array",
++                    "items": {
++                      "type": "string",
++                      "enum": [
++                        "red",
++                        "green",
++                        "blue"
++                      ]
++                    }
++                  }
++                },
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "boolean"
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-array-element-choices.public.json b/testdata/convert/golden/openapi/validate-array-element-choices.public.json
+new file mode 100644
+index 0000000..7abe75d
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-array-element-choices.public.json
+@@ -0,0 +1,67 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Array Choices Test",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/set-tags": {
++      "post": {
++        "operationId": "setTags",
++        "summary": "set-tags",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "bad-tags": {
++                    "type": "array",
++                    "items": {
++                      "type": "string",
++                      "enum": [
++                        "red",
++                        42,
++                        "red"
++                      ]
++                    }
++                  },
++                  "tags": {
++                    "type": "array",
++                    "items": {
++                      "type": "string",
++                      "enum": [
++                        "red",
++                        "green",
++                        "blue"
++                      ]
++                    }
++                  }
++                },
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "boolean"
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-clean.private.json b/testdata/convert/golden/openapi/validate-clean.private.json
+new file mode 100644
+index 0000000..8b25487
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-clean.private.json
+@@ -0,0 +1,133 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Clean Example API",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/get-person": {
++      "post": {
++        "operationId": "getPerson",
++        "summary": "get-person",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "id": {
++                    "type": "string"
++                  }
++                },
++                "required": [
++                  "id"
++                ],
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Person"
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/list-people": {
++      "post": {
++        "operationId": "listPeople",
++        "summary": "list-people",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "status": {
++                    "type": "string",
++                    "enum": [
++                      "active",
++                      "inactive"
++                    ]
++                  }
++                },
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "properties": {
++                    "next": {
++                      "type": [
++                        "object",
++                        "null"
++                      ],
++                      "description": "Opaque pagination cursor, or null if there is no such page."
++                    },
++                    "page": {
++                      "type": "array",
++                      "items": {
++                        "type": "array",
++                        "items": {
++                          "$ref": "#/components/schemas/Person"
++                        }
++                      }
++                    },
++                    "previous": {
++                      "type": [
++                        "object",
++                        "null"
++                      ],
++                      "description": "Opaque pagination cursor, or null if there is no such page."
++                    }
++                  },
++                  "required": [
++                    "page"
++                  ]
++                }
++              }
++            }
++          }
++        },
++        "x-webfunction-paginated": true
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "Person": {
++        "type": "object",
++        "properties": {
++          "id": {
++            "type": "string"
++          },
++          "name": {
++            "type": "string"
++          }
++        }
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-clean.public.json b/testdata/convert/golden/openapi/validate-clean.public.json
+new file mode 100644
+index 0000000..8b25487
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-clean.public.json
+@@ -0,0 +1,133 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Clean Example API",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/get-person": {
++      "post": {
++        "operationId": "getPerson",
++        "summary": "get-person",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "id": {
++                    "type": "string"
++                  }
++                },
++                "required": [
++                  "id"
++                ],
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Person"
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/list-people": {
++      "post": {
++        "operationId": "listPeople",
++        "summary": "list-people",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "status": {
++                    "type": "string",
++                    "enum": [
++                      "active",
++                      "inactive"
++                    ]
++                  }
++                },
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "properties": {
++                    "next": {
++                      "type": [
++                        "object",
++                        "null"
++                      ],
++                      "description": "Opaque pagination cursor, or null if there is no such page."
++                    },
++                    "page": {
++                      "type": "array",
++                      "items": {
++                        "type": "array",
++                        "items": {
++                          "$ref": "#/components/schemas/Person"
++                        }
++                      }
++                    },
++                    "previous": {
++                      "type": [
++                        "object",
++                        "null"
++                      ],
++                      "description": "Opaque pagination cursor, or null if there is no such page."
++                    }
++                  },
++                  "required": [
++                    "page"
++                  ]
++                }
++              }
++            }
++          }
++        },
++        "x-webfunction-paginated": true
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "Person": {
++        "type": "object",
++        "properties": {
++          "id": {
++            "type": "string"
++          },
++          "name": {
++            "type": "string"
++          }
++        }
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-event-source-valid.private.json b/testdata/convert/golden/openapi/validate-event-source-valid.private.json
+new file mode 100644
+index 0000000..111869e
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-event-source-valid.private.json
+@@ -0,0 +1,44 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Event Source Test",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/get-event-stream": {
++      "post": {
++        "operationId": "getEventStream",
++        "summary": "get-event-stream",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "string"
++                }
++              }
++            }
++          }
++        },
++        "x-webfunction-event-source": true
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-event-source-valid.public.json b/testdata/convert/golden/openapi/validate-event-source-valid.public.json
+new file mode 100644
+index 0000000..111869e
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-event-source-valid.public.json
+@@ -0,0 +1,44 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Event Source Test",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/get-event-stream": {
++      "post": {
++        "operationId": "getEventStream",
++        "summary": "get-event-stream",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "string"
++                }
++              }
++            }
++          }
++        },
++        "x-webfunction-event-source": true
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-flag-wrong-level.private.json b/testdata/convert/golden/openapi/validate-flag-wrong-level.private.json
+new file mode 100644
+index 0000000..6dee021
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-flag-wrong-level.private.json
+@@ -0,0 +1,48 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Flag Level Test",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/do-thing": {
++      "post": {
++        "operationId": "doThing",
++        "summary": "do-thing",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "id": {
++                    "type": "string"
++                  }
++                },
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "boolean"
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-flag-wrong-level.public.json b/testdata/convert/golden/openapi/validate-flag-wrong-level.public.json
+new file mode 100644
+index 0000000..6dee021
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-flag-wrong-level.public.json
+@@ -0,0 +1,48 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Flag Level Test",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/do-thing": {
++      "post": {
++        "operationId": "doThing",
++        "summary": "do-thing",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "id": {
++                    "type": "string"
++                  }
++                },
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "boolean"
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-flawed.private.json b/testdata/convert/golden/openapi/validate-flawed.private.json
+new file mode 100644
+index 0000000..139f6fe
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-flawed.private.json
+@@ -0,0 +1,149 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Flawed Example API",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/get-anything": {
++      "post": {
++        "operationId": "getAnything",
++        "summary": "get-anything",
++        "parameters": [
++          {
++            "name": "Api-Version",
++            "in": "header",
++            "description": "The package version to call against.",
++            "schema": {
++              "type": "string"
++            }
++          }
++        ],
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "array",
++                  "items": {}
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/get-blob": {
++      "post": {
++        "operationId": "getBlob",
++        "summary": "get-blob",
++        "parameters": [
++          {
++            "name": "Api-Version",
++            "in": "header",
++            "description": "The package version to call against.",
++            "schema": {
++              "type": "string"
++            }
++          }
++        ],
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "additionalProperties": true
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/list-people": {
++      "post": {
++        "operationId": "listPeople",
++        "summary": "list-people",
++        "parameters": [
++          {
++            "name": "Api-Version",
++            "in": "header",
++            "description": "The package version to call against.",
++            "schema": {
++              "type": "string"
++            }
++          }
++        ],
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "array",
++                  "items": {}
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "Ghost": {
++        "type": "object",
++        "additionalProperties": true
++      }
++    }
++  },
++  "x-webfunction-versioned": true,
++  "x-webfunction-package-errors": [
++    {
++      "code": "RATE_LIMITED",
++      "docs": "Too many requests."
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-flawed.public.json b/testdata/convert/golden/openapi/validate-flawed.public.json
+new file mode 100644
+index 0000000..139f6fe
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-flawed.public.json
+@@ -0,0 +1,149 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Flawed Example API",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/get-anything": {
++      "post": {
++        "operationId": "getAnything",
++        "summary": "get-anything",
++        "parameters": [
++          {
++            "name": "Api-Version",
++            "in": "header",
++            "description": "The package version to call against.",
++            "schema": {
++              "type": "string"
++            }
++          }
++        ],
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "array",
++                  "items": {}
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/get-blob": {
++      "post": {
++        "operationId": "getBlob",
++        "summary": "get-blob",
++        "parameters": [
++          {
++            "name": "Api-Version",
++            "in": "header",
++            "description": "The package version to call against.",
++            "schema": {
++              "type": "string"
++            }
++          }
++        ],
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "additionalProperties": true
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/list-people": {
++      "post": {
++        "operationId": "listPeople",
++        "summary": "list-people",
++        "parameters": [
++          {
++            "name": "Api-Version",
++            "in": "header",
++            "description": "The package version to call against.",
++            "schema": {
++              "type": "string"
++            }
++          }
++        ],
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "array",
++                  "items": {}
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "Ghost": {
++        "type": "object",
++        "additionalProperties": true
++      }
++    }
++  },
++  "x-webfunction-versioned": true,
++  "x-webfunction-package-errors": [
++    {
++      "code": "RATE_LIMITED",
++      "docs": "Too many requests."
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-private-levels.private.json b/testdata/convert/golden/openapi/validate-private-levels.private.json
+new file mode 100644
+index 0000000..e3febff
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-private-levels.private.json
+@@ -0,0 +1,98 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Private Levels Test",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/get-person": {
++      "post": {
++        "operationId": "getPerson",
++        "summary": "get-person",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "debug": {
++                    "type": "boolean"
++                  },
++                  "id": {
++                    "type": "string"
++                  }
++                },
++                "required": [
++                  "id"
++                ],
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Person"
++                }
++              }
++            }
++          }
++        }
++      }
++    },
++    "/internal-sync": {
++      "post": {
++        "operationId": "internalSync",
++        "summary": "internal-sync",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "boolean"
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "Person": {
++        "type": "object",
++        "properties": {
++          "audit_ref": {
++            "type": "string"
++          },
++          "name": {
++            "type": "string"
++          }
++        }
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-private-levels.public.json b/testdata/convert/golden/openapi/validate-private-levels.public.json
+new file mode 100644
+index 0000000..6227713
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-private-levels.public.json
+@@ -0,0 +1,63 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Private Levels Test",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/get-person": {
++      "post": {
++        "operationId": "getPerson",
++        "summary": "get-person",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "id": {
++                    "type": "string"
++                  }
++                },
++                "required": [
++                  "id"
++                ],
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Person"
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "Person": {
++        "type": "object",
++        "properties": {
++          "name": {
++            "type": "string"
++          }
++        }
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-private-required.private.json b/testdata/convert/golden/openapi/validate-private-required.private.json
+new file mode 100644
+index 0000000..29ab4ad
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-private-required.private.json
+@@ -0,0 +1,67 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Private Required Test",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/get-person": {
++      "post": {
++        "operationId": "getPerson",
++        "summary": "get-person",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "id": {
++                    "type": "string"
++                  },
++                  "token": {
++                    "type": "string"
++                  }
++                },
++                "required": [
++                  "id",
++                  "token"
++                ],
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Person"
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "Person": {
++        "type": "object",
++        "properties": {
++          "name": {
++            "type": "string"
++          }
++        }
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-private-required.public.json b/testdata/convert/golden/openapi/validate-private-required.public.json
+new file mode 100644
+index 0000000..f9dfbde
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-private-required.public.json
+@@ -0,0 +1,63 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Private Required Test",
++    "version": "1.0.0"
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/get-person": {
++      "post": {
++        "operationId": "getPerson",
++        "summary": "get-person",
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "properties": {
++                  "id": {
++                    "type": "string"
++                  }
++                },
++                "required": [
++                  "id"
++                ],
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Person"
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  },
++  "components": {
++    "schemas": {
++      "Person": {
++        "type": "object",
++        "properties": {
++          "name": {
++            "type": "string"
++          }
++        }
++      }
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-versioned-mismatch.private.json b/testdata/convert/golden/openapi/validate-versioned-mismatch.private.json
+new file mode 100644
+index 0000000..6ce7653
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-versioned-mismatch.private.json
+@@ -0,0 +1,62 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Versioned Mismatch Example",
++    "version": "v3",
++    "x-webfunction-versions": [
++      "v1",
++      "v2"
++    ]
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/ping": {
++      "post": {
++        "operationId": "ping",
++        "summary": "ping",
++        "parameters": [
++          {
++            "name": "Api-Version",
++            "in": "header",
++            "description": "The package version to call against.",
++            "schema": {
++              "type": "string",
++              "enum": [
++                "v1",
++                "v2"
++              ]
++            }
++          }
++        ],
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "boolean"
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  },
++  "x-webfunction-versioned": true
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/openapi/validate-versioned-mismatch.public.json b/testdata/convert/golden/openapi/validate-versioned-mismatch.public.json
+new file mode 100644
+index 0000000..6ce7653
+--- /dev/null
++++ b/testdata/convert/golden/openapi/validate-versioned-mismatch.public.json
+@@ -0,0 +1,62 @@
++{
++  "openapi": "3.1.0",
++  "info": {
++    "title": "Versioned Mismatch Example",
++    "version": "v3",
++    "x-webfunction-versions": [
++      "v1",
++      "v2"
++    ]
++  },
++  "servers": [
++    {
++      "url": "https://api.example.com"
++    }
++  ],
++  "paths": {
++    "/ping": {
++      "post": {
++        "operationId": "ping",
++        "summary": "ping",
++        "parameters": [
++          {
++            "name": "Api-Version",
++            "in": "header",
++            "description": "The package version to call against.",
++            "schema": {
++              "type": "string",
++              "enum": [
++                "v1",
++                "v2"
++              ]
++            }
++          }
++        ],
++        "requestBody": {
++          "required": true,
++          "content": {
++            "application/json": {
++              "schema": {
++                "type": "object",
++                "additionalProperties": false
++              }
++            }
++          }
++        },
++        "responses": {
++          "200": {
++            "description": "Successful response.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "boolean"
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  },
++  "x-webfunction-versioned": true
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/convert-private-flag.private.json b/testdata/convert/golden/postman/convert-private-flag.private.json
+new file mode 100644
+index 0000000..14f5962
+--- /dev/null
++++ b/testdata/convert/golden/postman/convert-private-flag.private.json
+@@ -0,0 +1,104 @@
++{
++  "info": {
++    "name": "Private Flag Convert Test",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "internal-sync",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"sync_secret\": \"\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/internal-sync",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "internal-sync"
++          ]
++        }
++      }
++    },
++    {
++      "name": "get-person",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"id\": \"\",\n  \"debug_trace\": false,\n  \"filter\": {\n    \"status\": \"\",\n    \"hidden_override\": \"\"\n  }\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-person",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-person"
++          ]
++        }
++      }
++    },
++    {
++      "name": "list-notes",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/list-notes",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "list-notes"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/convert-private-flag.public.json b/testdata/convert/golden/postman/convert-private-flag.public.json
+new file mode 100644
+index 0000000..aecad59
+--- /dev/null
++++ b/testdata/convert/golden/postman/convert-private-flag.public.json
+@@ -0,0 +1,74 @@
++{
++  "info": {
++    "name": "Private Flag Convert Test",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "get-person",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"id\": \"\",\n  \"filter\": {\n    \"status\": \"\"\n  }\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-person",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-person"
++          ]
++        }
++      }
++    },
++    {
++      "name": "list-notes",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/list-notes",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "list-notes"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/convert-types.private.json b/testdata/convert/golden/postman/convert-types.private.json
+new file mode 100644
+index 0000000..5945504
+--- /dev/null
++++ b/testdata/convert/golden/postman/convert-types.private.json
+@@ -0,0 +1,226 @@
++{
++  "info": {
++    "name": "Type Coverage Convert Test",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "create-account",
++      "description": "Exercises every argument type form.",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"email\": \"user@example.com\",\n  \"id\": \"00000000-0000-0000-0000-000000000000\",\n  \"homepage\": \"https://example.com\",\n  \"feed\": \"https://example.com\",\n  \"birthday\": \"2026-01-01\",\n  \"wake_time\": \"00:00:00\",\n  \"last_login\": \"2026-01-01T00:00:00Z\",\n  \"phone\": \"+15555550100\",\n  \"avatar\": \"\",\n  \"v4\": \"127.0.0.1\",\n  \"v6\": \"::1\",\n  \"host\": \"example.com\",\n  \"age\": 0,\n  \"big\": 0,\n  \"delta\": 0,\n  \"huge_delta\": 0,\n  \"ratio\": 0,\n  \"precise\": 0,\n  \"joined_at\": 0,\n  \"score\": 0,\n  \"active\": false,\n  \"anything\": null,\n  \"loose_list\": [],\n  \"loose_object\": {},\n  \"tags\": [\n    \"\"\n  ],\n  \"scores\": [\n    0\n  ],\n  \"nickname\": \"\",\n  \"contact\": \"user@example.com\",\n  \"role\": \"admin\",\n  \"level\": 1,\n  \"home\": {\n    \"street\": \"\",\n    \"city\": \"\",\n    \"postcode\": \"10110\"\n  },\n  \"previous_homes\": [\n    {\n      \"street\": \"\",\n      \"city\": \"\",\n      \"postcode\": \"10110\"\n    }\n  ]\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/create-account",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "create-account"
++          ]
++        }
++      }
++    },
++    {
++      "name": "list-accounts",
++      "description": "**Paginated.** Response is `{ page: [...], next, previous }`.",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"limit\": 0\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/list-accounts",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "list-accounts"
++          ]
++        }
++      }
++    },
++    {
++      "name": "get-stats",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-stats",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-stats"
++          ]
++        }
++      }
++    },
++    {
++      "name": "ping",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/ping",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "ping"
++          ]
++        }
++      }
++    },
++    {
++      "name": "get-tags",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-tags",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-tags"
++          ]
++        }
++      }
++    },
++    {
++      "name": "find-account",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"id\": \"00000000-0000-0000-0000-000000000000\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/find-account",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "find-account"
++          ]
++        }
++      }
++    },
++    {
++      "name": "get-tree",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-tree",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-tree"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/convert-types.public.json b/testdata/convert/golden/postman/convert-types.public.json
+new file mode 100644
+index 0000000..5945504
+--- /dev/null
++++ b/testdata/convert/golden/postman/convert-types.public.json
+@@ -0,0 +1,226 @@
++{
++  "info": {
++    "name": "Type Coverage Convert Test",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "create-account",
++      "description": "Exercises every argument type form.",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"email\": \"user@example.com\",\n  \"id\": \"00000000-0000-0000-0000-000000000000\",\n  \"homepage\": \"https://example.com\",\n  \"feed\": \"https://example.com\",\n  \"birthday\": \"2026-01-01\",\n  \"wake_time\": \"00:00:00\",\n  \"last_login\": \"2026-01-01T00:00:00Z\",\n  \"phone\": \"+15555550100\",\n  \"avatar\": \"\",\n  \"v4\": \"127.0.0.1\",\n  \"v6\": \"::1\",\n  \"host\": \"example.com\",\n  \"age\": 0,\n  \"big\": 0,\n  \"delta\": 0,\n  \"huge_delta\": 0,\n  \"ratio\": 0,\n  \"precise\": 0,\n  \"joined_at\": 0,\n  \"score\": 0,\n  \"active\": false,\n  \"anything\": null,\n  \"loose_list\": [],\n  \"loose_object\": {},\n  \"tags\": [\n    \"\"\n  ],\n  \"scores\": [\n    0\n  ],\n  \"nickname\": \"\",\n  \"contact\": \"user@example.com\",\n  \"role\": \"admin\",\n  \"level\": 1,\n  \"home\": {\n    \"street\": \"\",\n    \"city\": \"\",\n    \"postcode\": \"10110\"\n  },\n  \"previous_homes\": [\n    {\n      \"street\": \"\",\n      \"city\": \"\",\n      \"postcode\": \"10110\"\n    }\n  ]\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/create-account",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "create-account"
++          ]
++        }
++      }
++    },
++    {
++      "name": "list-accounts",
++      "description": "**Paginated.** Response is `{ page: [...], next, previous }`.",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"limit\": 0\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/list-accounts",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "list-accounts"
++          ]
++        }
++      }
++    },
++    {
++      "name": "get-stats",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-stats",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-stats"
++          ]
++        }
++      }
++    },
++    {
++      "name": "ping",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/ping",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "ping"
++          ]
++        }
++      }
++    },
++    {
++      "name": "get-tags",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-tags",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-tags"
++          ]
++        }
++      }
++    },
++    {
++      "name": "find-account",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"id\": \"00000000-0000-0000-0000-000000000000\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/find-account",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "find-account"
++          ]
++        }
++      }
++    },
++    {
++      "name": "get-tree",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-tree",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-tree"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-array-element-choices.private.json b/testdata/convert/golden/postman/validate-array-element-choices.private.json
+new file mode 100644
+index 0000000..c69349a
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-array-element-choices.private.json
+@@ -0,0 +1,44 @@
++{
++  "info": {
++    "name": "Array Choices Test",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "set-tags",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"tags\": \"red\",\n  \"bad-tags\": \"red\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/set-tags",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "set-tags"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-array-element-choices.public.json b/testdata/convert/golden/postman/validate-array-element-choices.public.json
+new file mode 100644
+index 0000000..c69349a
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-array-element-choices.public.json
+@@ -0,0 +1,44 @@
++{
++  "info": {
++    "name": "Array Choices Test",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "set-tags",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"tags\": \"red\",\n  \"bad-tags\": \"red\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/set-tags",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "set-tags"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-clean.private.json b/testdata/convert/golden/postman/validate-clean.private.json
+new file mode 100644
+index 0000000..0a53b36
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-clean.private.json
+@@ -0,0 +1,75 @@
++{
++  "info": {
++    "name": "Clean Example API",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "get-person",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"id\": \"\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-person",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-person"
++          ]
++        }
++      }
++    },
++    {
++      "name": "list-people",
++      "description": "**Paginated.** Response is `{ page: [...], next, previous }`.",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"status\": \"active\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/list-people",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "list-people"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-clean.public.json b/testdata/convert/golden/postman/validate-clean.public.json
+new file mode 100644
+index 0000000..0a53b36
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-clean.public.json
+@@ -0,0 +1,75 @@
++{
++  "info": {
++    "name": "Clean Example API",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "get-person",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"id\": \"\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-person",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-person"
++          ]
++        }
++      }
++    },
++    {
++      "name": "list-people",
++      "description": "**Paginated.** Response is `{ page: [...], next, previous }`.",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"status\": \"active\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/list-people",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "list-people"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-event-source-valid.private.json b/testdata/convert/golden/postman/validate-event-source-valid.private.json
+new file mode 100644
+index 0000000..bc11460
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-event-source-valid.private.json
+@@ -0,0 +1,44 @@
++{
++  "info": {
++    "name": "Event Source Test",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "get-event-stream",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-event-stream",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-event-stream"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-event-source-valid.public.json b/testdata/convert/golden/postman/validate-event-source-valid.public.json
+new file mode 100644
+index 0000000..bc11460
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-event-source-valid.public.json
+@@ -0,0 +1,44 @@
++{
++  "info": {
++    "name": "Event Source Test",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "get-event-stream",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-event-stream",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-event-stream"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-flag-wrong-level.private.json b/testdata/convert/golden/postman/validate-flag-wrong-level.private.json
+new file mode 100644
+index 0000000..0c6a4a1
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-flag-wrong-level.private.json
+@@ -0,0 +1,44 @@
++{
++  "info": {
++    "name": "Flag Level Test",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "do-thing",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"id\": \"\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/do-thing",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "do-thing"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-flag-wrong-level.public.json b/testdata/convert/golden/postman/validate-flag-wrong-level.public.json
+new file mode 100644
+index 0000000..0c6a4a1
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-flag-wrong-level.public.json
+@@ -0,0 +1,44 @@
++{
++  "info": {
++    "name": "Flag Level Test",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "do-thing",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"id\": \"\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/do-thing",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "do-thing"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-flawed.private.json b/testdata/convert/golden/postman/validate-flawed.private.json
+new file mode 100644
+index 0000000..b81261e
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-flawed.private.json
+@@ -0,0 +1,155 @@
++{
++  "info": {
++    "name": "Flawed Example API",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "list-people",
++      "description": "**Paginated.** Response is `{ page: [...], next, previous }`.",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          },
++          {
++            "key": "Api-Version",
++            "value": "{{apiVersion}}"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"status\": \"active\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/list-people",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "list-people"
++          ]
++        }
++      }
++    },
++    {
++      "name": "list-people",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          },
++          {
++            "key": "Api-Version",
++            "value": "{{apiVersion}}"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/list-people",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "list-people"
++          ]
++        }
++      }
++    },
++    {
++      "name": "get-blob",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          },
++          {
++            "key": "Api-Version",
++            "value": "{{apiVersion}}"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-blob",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-blob"
++          ]
++        }
++      }
++    },
++    {
++      "name": "get-anything",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          },
++          {
++            "key": "Api-Version",
++            "value": "{{apiVersion}}"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-anything",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-anything"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    },
++    {
++      "key": "apiVersion",
++      "value": ""
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-flawed.public.json b/testdata/convert/golden/postman/validate-flawed.public.json
+new file mode 100644
+index 0000000..b81261e
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-flawed.public.json
+@@ -0,0 +1,155 @@
++{
++  "info": {
++    "name": "Flawed Example API",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "list-people",
++      "description": "**Paginated.** Response is `{ page: [...], next, previous }`.",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          },
++          {
++            "key": "Api-Version",
++            "value": "{{apiVersion}}"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"status\": \"active\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/list-people",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "list-people"
++          ]
++        }
++      }
++    },
++    {
++      "name": "list-people",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          },
++          {
++            "key": "Api-Version",
++            "value": "{{apiVersion}}"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/list-people",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "list-people"
++          ]
++        }
++      }
++    },
++    {
++      "name": "get-blob",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          },
++          {
++            "key": "Api-Version",
++            "value": "{{apiVersion}}"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-blob",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-blob"
++          ]
++        }
++      }
++    },
++    {
++      "name": "get-anything",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          },
++          {
++            "key": "Api-Version",
++            "value": "{{apiVersion}}"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-anything",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-anything"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    },
++    {
++      "key": "apiVersion",
++      "value": ""
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-private-levels.private.json b/testdata/convert/golden/postman/validate-private-levels.private.json
+new file mode 100644
+index 0000000..9f5eb24
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-private-levels.private.json
+@@ -0,0 +1,74 @@
++{
++  "info": {
++    "name": "Private Levels Test",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "internal-sync",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/internal-sync",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "internal-sync"
++          ]
++        }
++      }
++    },
++    {
++      "name": "get-person",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"id\": \"\",\n  \"debug\": false\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-person",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-person"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-private-levels.public.json b/testdata/convert/golden/postman/validate-private-levels.public.json
+new file mode 100644
+index 0000000..07067f1
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-private-levels.public.json
+@@ -0,0 +1,44 @@
++{
++  "info": {
++    "name": "Private Levels Test",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "get-person",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"id\": \"\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-person",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-person"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-private-required.private.json b/testdata/convert/golden/postman/validate-private-required.private.json
+new file mode 100644
+index 0000000..966d878
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-private-required.private.json
+@@ -0,0 +1,44 @@
++{
++  "info": {
++    "name": "Private Required Test",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "get-person",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"id\": \"\",\n  \"token\": \"\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-person",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-person"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-private-required.public.json b/testdata/convert/golden/postman/validate-private-required.public.json
+new file mode 100644
+index 0000000..7d24041
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-private-required.public.json
+@@ -0,0 +1,44 @@
++{
++  "info": {
++    "name": "Private Required Test",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "get-person",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{\n  \"id\": \"\"\n}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/get-person",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "get-person"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-versioned-mismatch.private.json b/testdata/convert/golden/postman/validate-versioned-mismatch.private.json
+new file mode 100644
+index 0000000..965a31f
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-versioned-mismatch.private.json
+@@ -0,0 +1,52 @@
++{
++  "info": {
++    "name": "Versioned Mismatch Example",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "ping",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          },
++          {
++            "key": "Api-Version",
++            "value": "{{apiVersion}}"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/ping",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "ping"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    },
++    {
++      "key": "apiVersion",
++      "value": "v3"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/golden/postman/validate-versioned-mismatch.public.json b/testdata/convert/golden/postman/validate-versioned-mismatch.public.json
+new file mode 100644
+index 0000000..965a31f
+--- /dev/null
++++ b/testdata/convert/golden/postman/validate-versioned-mismatch.public.json
+@@ -0,0 +1,52 @@
++{
++  "info": {
++    "name": "Versioned Mismatch Example",
++    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
++  },
++  "item": [
++    {
++      "name": "ping",
++      "request": {
++        "method": "POST",
++        "header": [
++          {
++            "key": "Content-Type",
++            "value": "application/json"
++          },
++          {
++            "key": "Api-Version",
++            "value": "{{apiVersion}}"
++          }
++        ],
++        "body": {
++          "mode": "raw",
++          "raw": "{}",
++          "options": {
++            "raw": {
++              "language": "json"
++            }
++          }
++        },
++        "url": {
++          "raw": "{{baseUrl}}/ping",
++          "host": [
++            "{{baseUrl}}"
++          ],
++          "path": [
++            "ping"
++          ]
++        }
++      }
++    }
++  ],
++  "variable": [
++    {
++      "key": "baseUrl",
++      "value": "https://api.example.com"
++    },
++    {
++      "key": "apiVersion",
++      "value": "v3"
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/testdata/convert/types.json b/testdata/convert/types.json
+new file mode 100644
+index 0000000..d7dbd77
+--- /dev/null
++++ b/testdata/convert/types.json
+@@ -0,0 +1,108 @@
++{
++  "base_url": "https://api.example.com",
++  "name": "Type Coverage Convert Test",
++  "version": "1.0.0",
++  "endpoints": [
++    {
++      "name": "create-account",
++      "returns": "object.account",
++      "docs": "Exercises every argument type form.",
++      "arguments": [
++        { "name": "email", "type": "string.email", "flags": ["required"] },
++        { "name": "id", "type": "string.uuid" },
++        { "name": "homepage", "type": "string.url" },
++        { "name": "feed", "type": "string.uri" },
++        { "name": "birthday", "type": "string.date" },
++        { "name": "wake_time", "type": "string.time" },
++        { "name": "last_login", "type": "string.datetime" },
++        { "name": "phone", "type": "string.phone" },
++        { "name": "avatar", "type": "string.base64" },
++        { "name": "v4", "type": "string.ipv4" },
++        { "name": "v6", "type": "string.ipv6" },
++        { "name": "host", "type": "string.hostname" },
++        { "name": "age", "type": "number.u32" },
++        { "name": "big", "type": "number.u64" },
++        { "name": "delta", "type": "number.i32" },
++        { "name": "huge_delta", "type": "number.i64" },
++        { "name": "ratio", "type": "number.f32" },
++        { "name": "precise", "type": "number.f64" },
++        { "name": "joined_at", "type": "number.timestamp" },
++        { "name": "score", "type": "number" },
++        { "name": "active", "type": "boolean" },
++        { "name": "anything", "type": "any" },
++        { "name": "loose_list", "type": "array" },
++        { "name": "loose_object", "type": "object" },
++        { "name": "tags", "type": [["string"]] },
++        { "name": "scores", "type": [["number"]] },
++        { "name": "nickname", "type": ["string", "null"] },
++        { "name": "contact", "type": ["string.email", "number"] },
++        { "name": "role", "type": "string", "choices": ["admin", "member", "guest"] },
++        { "name": "level", "type": "number", "choices": [1, 2, 3] },
++        { "name": "home", "type": "object.address" },
++        { "name": "previous_homes", "type": [["object.address"]] }
++      ],
++      "attributes": []
++    },
++    {
++      "name": "list-accounts",
++      "returns": "array",
++      "flags": ["paginated"],
++      "arguments": [{ "name": "limit", "type": "number.u32" }],
++      "attributes": [
++        { "name": "id", "type": "string.uuid" },
++        { "name": "name", "type": "string" },
++        { "name": "balance", "type": "number.f64" },
++        { "name": "status", "type": "string", "values": ["open", "closed"] }
++      ]
++    },
++    { "name": "get-stats", "returns": "number", "arguments": [], "attributes": [] },
++    { "name": "ping", "returns": "boolean", "arguments": [], "attributes": [] },
++    { "name": "get-tags", "returns": [["string"]], "arguments": [], "attributes": [] },
++    {
++      "name": "find-account",
++      "returns": ["object.account", "null"],
++      "arguments": [{ "name": "id", "type": "string.uuid", "flags": ["required"] }],
++      "attributes": []
++    },
++    { "name": "get-tree", "returns": "object.node", "arguments": [], "attributes": [] }
++  ],
++  "objects": [
++    {
++      "name": "account",
++      "attributes": [
++        { "name": "id", "type": "string.uuid" },
++        { "name": "email", "type": "string.email" },
++        { "name": "age", "type": "number.u32" },
++        { "name": "active", "type": "boolean" },
++        { "name": "score", "type": "number" },
++        { "name": "nickname", "type": ["string", "null"] },
++        { "name": "tags", "type": [["string"]] },
++        { "name": "role", "type": "string", "values": ["admin", "member", "guest"] },
++        { "name": "home", "type": "object.address" },
++        { "name": "previous_homes", "type": [["object.address"]] },
++        { "name": "extra", "type": "any" }
++      ]
++    },
++    {
++      "name": "address",
++      "arguments": [
++        { "name": "street", "type": "string", "flags": ["required"] },
++        { "name": "city", "type": "string" },
++        { "name": "postcode", "type": "string", "choices": ["10110", "10120"] }
++      ],
++      "attributes": [
++        { "name": "street", "type": "string" },
++        { "name": "city", "type": "string" },
++        { "name": "verified", "type": "boolean" }
++      ]
++    },
++    {
++      "name": "node",
++      "attributes": [
++        { "name": "label", "type": "string" },
++        { "name": "children", "type": [["object.node"]] },
++        { "name": "parent", "type": ["object.node", "null"] }
++      ]
++    }
++  ]
++}

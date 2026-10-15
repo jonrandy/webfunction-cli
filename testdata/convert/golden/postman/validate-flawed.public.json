@@ -1,0 +1,155 @@
+{
+  "info": {
+    "name": "Flawed Example API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "list-people",
+      "description": "**Paginated.** Response is `{ page: [...], next, previous }`.",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Api-Version",
+            "value": "{{apiVersion}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"active\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/list-people",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "list-people"
+          ]
+        }
+      }
+    },
+    {
+      "name": "list-people",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Api-Version",
+            "value": "{{apiVersion}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/list-people",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "list-people"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get-blob",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Api-Version",
+            "value": "{{apiVersion}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/get-blob",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "get-blob"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get-anything",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Api-Version",
+            "value": "{{apiVersion}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/get-anything",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "get-anything"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.example.com"
+    },
+    {
+      "key": "apiVersion",
+      "value": ""
+    }
+  ]
+}

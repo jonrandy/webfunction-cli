@@ -1,0 +1,108 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Type Coverage Convert Test",
+  "version": "1.0.0",
+  "endpoints": [
+    {
+      "name": "create-account",
+      "returns": "object.account",
+      "docs": "Exercises every argument type form.",
+      "arguments": [
+        { "name": "email", "type": "string.email", "flags": ["required"] },
+        { "name": "id", "type": "string.uuid" },
+        { "name": "homepage", "type": "string.url" },
+        { "name": "feed", "type": "string.uri" },
+        { "name": "birthday", "type": "string.date" },
+        { "name": "wake_time", "type": "string.time" },
+        { "name": "last_login", "type": "string.datetime" },
+        { "name": "phone", "type": "string.phone" },
+        { "name": "avatar", "type": "string.base64" },
+        { "name": "v4", "type": "string.ipv4" },
+        { "name": "v6", "type": "string.ipv6" },
+        { "name": "host", "type": "string.hostname" },
+        { "name": "age", "type": "number.u32" },
+        { "name": "big", "type": "number.u64" },
+        { "name": "delta", "type": "number.i32" },
+        { "name": "huge_delta", "type": "number.i64" },
+        { "name": "ratio", "type": "number.f32" },
+        { "name": "precise", "type": "number.f64" },
+        { "name": "joined_at", "type": "number.timestamp" },
+        { "name": "score", "type": "number" },
+        { "name": "active", "type": "boolean" },
+        { "name": "anything", "type": "any" },
+        { "name": "loose_list", "type": "array" },
+        { "name": "loose_object", "type": "object" },
+        { "name": "tags", "type": [["string"]] },
+        { "name": "scores", "type": [["number"]] },
+        { "name": "nickname", "type": ["string", "null"] },
+        { "name": "contact", "type": ["string.email", "number"] },
+        { "name": "role", "type": "string", "choices": ["admin", "member", "guest"] },
+        { "name": "level", "type": "number", "choices": [1, 2, 3] },
+        { "name": "home", "type": "object.address" },
+        { "name": "previous_homes", "type": [["object.address"]] }
+      ],
+      "attributes": []
+    },
+    {
+      "name": "list-accounts",
+      "returns": "array",
+      "flags": ["paginated"],
+      "arguments": [{ "name": "limit", "type": "number.u32" }],
+      "attributes": [
+        { "name": "id", "type": "string.uuid" },
+        { "name": "name", "type": "string" },
+        { "name": "balance", "type": "number.f64" },
+        { "name": "status", "type": "string", "values": ["open", "closed"] }
+      ]
+    },
+    { "name": "get-stats", "returns": "number", "arguments": [], "attributes": [] },
+    { "name": "ping", "returns": "boolean", "arguments": [], "attributes": [] },
+    { "name": "get-tags", "returns": [["string"]], "arguments": [], "attributes": [] },
+    {
+      "name": "find-account",
+      "returns": ["object.account", "null"],
+      "arguments": [{ "name": "id", "type": "string.uuid", "flags": ["required"] }],
+      "attributes": []
+    },
+    { "name": "get-tree", "returns": "object.node", "arguments": [], "attributes": [] }
+  ],
+  "objects": [
+    {
+      "name": "account",
+      "attributes": [
+        { "name": "id", "type": "string.uuid" },
+        { "name": "email", "type": "string.email" },
+        { "name": "age", "type": "number.u32" },
+        { "name": "active", "type": "boolean" },
+        { "name": "score", "type": "number" },
+        { "name": "nickname", "type": ["string", "null"] },
+        { "name": "tags", "type": [["string"]] },
+        { "name": "role", "type": "string", "values": ["admin", "member", "guest"] },
+        { "name": "home", "type": "object.address" },
+        { "name": "previous_homes", "type": [["object.address"]] },
+        { "name": "extra", "type": "any" }
+      ]
+    },
+    {
+      "name": "address",
+      "arguments": [
+        { "name": "street", "type": "string", "flags": ["required"] },
+        { "name": "city", "type": "string" },
+        { "name": "postcode", "type": "string", "choices": ["10110", "10120"] }
+      ],
+      "attributes": [
+        { "name": "street", "type": "string" },
+        { "name": "city", "type": "string" },
+        { "name": "verified", "type": "boolean" }
+      ]
+    },
+    {
+      "name": "node",
+      "attributes": [
+        { "name": "label", "type": "string" },
+        { "name": "children", "type": [["object.node"]] },
+        { "name": "parent", "type": ["object.node", "null"] }
+      ]
+    }
+  ]
+}

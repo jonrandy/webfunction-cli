@@ -1,0 +1,564 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Type Coverage Convert Test",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ],
+  "paths": {
+    "/create-account": {
+      "post": {
+        "operationId": "createAccount",
+        "summary": "create-account",
+        "description": "Exercises every argument type form.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "age": {
+                    "type": "number",
+                    "format": "int32",
+                    "minimum": 0
+                  },
+                  "anything": {},
+                  "avatar": {
+                    "type": "string",
+                    "format": "byte"
+                  },
+                  "big": {
+                    "type": "number",
+                    "format": "int64",
+                    "minimum": 0
+                  },
+                  "birthday": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "contact": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "format": "email"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "delta": {
+                    "type": "number",
+                    "format": "int32"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "feed": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "home": {
+                    "$ref": "#/components/schemas/AddressInput"
+                  },
+                  "homepage": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "host": {
+                    "type": "string",
+                    "format": "hostname"
+                  },
+                  "huge_delta": {
+                    "type": "number",
+                    "format": "int64"
+                  },
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "joined_at": {
+                    "type": "number",
+                    "format": "int64",
+                    "description": "Unix timestamp (seconds since the epoch)."
+                  },
+                  "last_login": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "level": {
+                    "type": "number",
+                    "enum": [
+                      1,
+                      2,
+                      3
+                    ]
+                  },
+                  "loose_list": {
+                    "type": "array",
+                    "items": {}
+                  },
+                  "loose_object": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "nickname": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "phone": {
+                    "type": "string",
+                    "description": "Phone number in E.164 format."
+                  },
+                  "precise": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "previous_homes": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/AddressInput"
+                    }
+                  },
+                  "ratio": {
+                    "type": "number",
+                    "format": "float"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "member",
+                      "guest"
+                    ]
+                  },
+                  "score": {
+                    "type": "number"
+                  },
+                  "scores": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "v4": {
+                    "type": "string",
+                    "format": "ipv4"
+                  },
+                  "v6": {
+                    "type": "string",
+                    "format": "ipv6"
+                  },
+                  "wake_time": {
+                    "type": "string",
+                    "format": "time"
+                  }
+                },
+                "required": [
+                  "email"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/find-account": {
+      "post": {
+        "operationId": "findAccount",
+        "summary": "find-account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Account"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-stats": {
+      "post": {
+        "operationId": "getStats",
+        "summary": "get-stats",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-tags": {
+      "post": {
+        "operationId": "getTags",
+        "summary": "get-tags",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-tree": {
+      "post": {
+        "operationId": "getTree",
+        "summary": "get-tree",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Node"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/list-accounts": {
+      "post": {
+        "operationId": "listAccounts",
+        "summary": "list-accounts",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "number",
+                    "format": "int32",
+                    "minimum": 0
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "next": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Opaque pagination cursor, or null if there is no such page."
+                    },
+                    "page": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "balance": {
+                              "type": "number",
+                              "format": "double"
+                            },
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "open",
+                                "closed"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "previous": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Opaque pagination cursor, or null if there is no such page."
+                    }
+                  },
+                  "required": [
+                    "page"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-webfunction-paginated": true
+      }
+    },
+    "/ping": {
+      "post": {
+        "operationId": "ping",
+        "summary": "ping",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Account": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "age": {
+            "type": "number",
+            "format": "int32",
+            "minimum": 0
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "extra": {},
+          "home": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nickname": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "previous_homes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Address"
+            }
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "member",
+              "guest"
+            ]
+          },
+          "score": {
+            "type": "number"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Address": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AddressInput": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "postcode": {
+            "type": "string",
+            "enum": [
+              "10110",
+              "10120"
+            ]
+          },
+          "street": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "street"
+        ],
+        "additionalProperties": false
+      },
+      "Node": {
+        "type": "object",
+        "properties": {
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Node"
+            }
+          },
+          "label": {
+            "type": "string"
+          },
+          "parent": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Node"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

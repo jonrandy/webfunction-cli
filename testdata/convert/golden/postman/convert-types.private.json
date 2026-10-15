@@ -1,0 +1,226 @@
+{
+  "info": {
+    "name": "Type Coverage Convert Test",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "create-account",
+      "description": "Exercises every argument type form.",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@example.com\",\n  \"id\": \"00000000-0000-0000-0000-000000000000\",\n  \"homepage\": \"https://example.com\",\n  \"feed\": \"https://example.com\",\n  \"birthday\": \"2026-01-01\",\n  \"wake_time\": \"00:00:00\",\n  \"last_login\": \"2026-01-01T00:00:00Z\",\n  \"phone\": \"+15555550100\",\n  \"avatar\": \"\",\n  \"v4\": \"127.0.0.1\",\n  \"v6\": \"::1\",\n  \"host\": \"example.com\",\n  \"age\": 0,\n  \"big\": 0,\n  \"delta\": 0,\n  \"huge_delta\": 0,\n  \"ratio\": 0,\n  \"precise\": 0,\n  \"joined_at\": 0,\n  \"score\": 0,\n  \"active\": false,\n  \"anything\": null,\n  \"loose_list\": [],\n  \"loose_object\": {},\n  \"tags\": [\n    \"\"\n  ],\n  \"scores\": [\n    0\n  ],\n  \"nickname\": \"\",\n  \"contact\": \"user@example.com\",\n  \"role\": \"admin\",\n  \"level\": 1,\n  \"home\": {\n    \"street\": \"\",\n    \"city\": \"\",\n    \"postcode\": \"10110\"\n  },\n  \"previous_homes\": [\n    {\n      \"street\": \"\",\n      \"city\": \"\",\n      \"postcode\": \"10110\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/create-account",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "create-account"
+          ]
+        }
+      }
+    },
+    {
+      "name": "list-accounts",
+      "description": "**Paginated.** Response is `{ page: [...], next, previous }`.",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"limit\": 0\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/list-accounts",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "list-accounts"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get-stats",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/get-stats",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "get-stats"
+          ]
+        }
+      }
+    },
+    {
+      "name": "ping",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/ping",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "ping"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get-tags",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/get-tags",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "get-tags"
+          ]
+        }
+      }
+    },
+    {
+      "name": "find-account",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"00000000-0000-0000-0000-000000000000\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/find-account",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "find-account"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get-tree",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/get-tree",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "get-tree"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.example.com"
+    }
+  ]
+}
