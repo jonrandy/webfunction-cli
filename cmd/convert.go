@@ -89,6 +89,8 @@ func (c *ConvertCommand) Run(args []string) error {
 		fmt.Println("Including private endpoints, arguments, and attributes (--private)")
 	}
 
+	warnGenerics(warnWriter, pkg, *url)
+
 	var out string
 	switch *target {
 	case "openapi":
