@@ -100,6 +100,7 @@ func TestGenericArgumentExamples(t *testing.T) {
 		{"number argument", `{"object.wrapper":"number"}`, `{"value":0,"items":[0]}`},
 		{"union argument is spliced, first non-null wins", `{"object.wrapper":["string.email","null"]}`, `{"value":"user@example.com","items":["user@example.com"]}`},
 		{"object argument", `{"object.wrapper":"object.address"}`, `{"value":{"street":""},"items":[{"street":""}]}`},
+		{"dangling object reference inside an application renders empty", `{"object.wrapper":"object.ghost"}`, `{"value":{},"items":[{}]}`},
 		{"nested application", `{"object.wrapper":{"object.wrapper":"boolean"}}`, `{"value":{"value":false,"items":[false]},"items":[{"value":false,"items":[false]}]}`},
 		{"application inside an array", `[[{"object.wrapper":"number"}]]`, `[{"value":0,"items":[0]}]`},
 		{"unapplied generic resolves T to any", `"object.wrapper"`, `{"value":null,"items":[null]}`},
