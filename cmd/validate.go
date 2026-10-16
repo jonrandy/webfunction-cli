@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/webfunction-protocol/webfunction-go"
 	"wfn/validate"
 )
 
@@ -23,14 +22,15 @@ func (c *ValidateCommand) Summary() string {
 }
 
 func (c *ValidateCommand) Usage() string {
-	return `wfn validate --url <url> -o <file> [--format json|markdown|html]
+	return `wfn validate (--url <url> | --file <path>) -o <file> [--format json|markdown|html]
 
-Fetches a webfunction package and checks its structure for dangling
-references, inconsistent flags/versions, and other known wire-format
-footguns, writing a report to -o.
+Fetches a webfunction package (or reads one from --file) and checks its
+structure for dangling references, inconsistent flags/versions, and other
+known wire-format footguns, writing a report to -o.
 
 Flags:
-  --url        URL of the webfunction package to validate (required)
+  --url        URL of the webfunction package to validate (--url or --file is required)
+  --file       Path to a local webfunction package JSON file to validate instead of --url
   -o           Output file to write the report to (required)
   --format     Report format: json, markdown, or html (default: json)
 
@@ -40,13 +40,15 @@ Fetch/write failures also exit non-zero, same as codegen/convert.
 
 Example:
   wfn validate --url https://api.reservepay.com/merchants -o report.json
-  wfn validate --url https://api.reservepay.com/merchants -o report.html --format html`
+  wfn validate --url https://api.reservepay.com/merchants -o report.html --format html
+  wfn validate --file ./package.json -o report.json`
 }
 
 func (c *ValidateCommand) Run(args []string) error {
 	fs := flag.NewFlagSet(c.Name(), flag.ContinueOnError)
 
 	url := fs.String("url", "", "URL of the webfunction package")
+	file := fs.String("file", "", "path to a webfunction package JSON file (instead of --url)")
 	output := fs.String("o", "", "output file name")
 	format := fs.String("format", "json", "report format ("+fmt.Sprint(validate.ValidFormats)+")")
 
@@ -55,8 +57,12 @@ func (c *ValidateCommand) Run(args []string) error {
 	}
 
 	var missing []string
-	if *url == "" {
-		missing = append(missing, "--url")
+	sourceMissing, err := packageSourceFlags(*url, *file)
+	if err != nil {
+		return fmt.Errorf("%w\n\n%s", err, c.Usage())
+	}
+	if sourceMissing != "" {
+		missing = append(missing, sourceMissing)
 	}
 	if *output == "" {
 		missing = append(missing, "-o")
@@ -69,19 +75,19 @@ func (c *ValidateCommand) Run(args []string) error {
 		return fmt.Errorf("invalid --format %q, must be one of: %v", *format, validate.ValidFormats)
 	}
 
-	client, err := webfunction.FromPackageEndpoint(*url, webfunction.Options{})
+	loaded, err := loadPackage(*url, *file)
 	if err != nil {
-		return fmt.Errorf("fetching package: %w", err)
+		return err
 	}
-	pkg := client.Package()
+	pkg := loaded.pkg
 
 	name := pkg.Name
 	if name == "" {
 		name = "(unnamed package)"
 	}
-	fmt.Printf("Fetched %s (%d endpoint(s)) from %s\n", name, len(pkg.Endpoints), *url)
+	fmt.Printf("%s %s (%d endpoint(s)) from %s\n", loaded.verb, name, len(pkg.Endpoints), loaded.from)
 
-	report := validate.Run(pkg, *url)
+	report := validate.Run(pkg, loaded.from)
 
 	rendered, err := report.Render(*format)
 	if err != nil {

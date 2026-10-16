@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/webfunction-protocol/webfunction-go"
 	"wfn/openapiconvert"
 	"wfn/postmanconvert"
 )
@@ -29,19 +28,21 @@ func (c *ConvertCommand) Summary() string {
 }
 
 func (c *ConvertCommand) Usage() string {
-	return `wfn convert --target <format> --url <url> -o <file>
+	return `wfn convert --target <format> (--url <url> | --file <path>) -o <file>
 
 Converts a webfunction package definition into another document format.
 
 Flags:
   --target     Output format. One of: ` + fmt.Sprint(validConvertTargets) + ` (required)
-  --url        URL of the webfunction package to convert (required)
+  --url        URL of the webfunction package to convert (--url or --file is required)
+  --file       Path to a local webfunction package JSON file to convert instead of --url
   -o           Output file to write the converted document to (required)
   --private    Include endpoints, arguments, and attributes flagged private (default: excluded)
 
 Example:
   wfn convert --target openapi --url https://api.reservepay.com/merchants -o converted.json
-  wfn convert --target postman --url https://api.reservepay.com/merchants -o merchants.postman_collection.json --private`
+  wfn convert --target postman --url https://api.reservepay.com/merchants -o merchants.postman_collection.json --private
+  wfn convert --target openapi --file ./package.json -o converted.json`
 }
 
 func (c *ConvertCommand) Run(args []string) error {
@@ -49,6 +50,7 @@ func (c *ConvertCommand) Run(args []string) error {
 
 	target := fs.String("target", "", "output format ("+fmt.Sprint(validConvertTargets)+")")
 	url := fs.String("url", "", "URL of the webfunction package")
+	file := fs.String("file", "", "path to a webfunction package JSON file (instead of --url)")
 	output := fs.String("o", "", "output file name")
 	private := fs.Bool("private", false, "include endpoints, arguments, and attributes flagged private in the output")
 
@@ -60,8 +62,12 @@ func (c *ConvertCommand) Run(args []string) error {
 	if *target == "" {
 		missing = append(missing, "--target")
 	}
-	if *url == "" {
-		missing = append(missing, "--url")
+	sourceMissing, err := packageSourceFlags(*url, *file)
+	if err != nil {
+		return fmt.Errorf("%w\n\n%s", err, c.Usage())
+	}
+	if sourceMissing != "" {
+		missing = append(missing, sourceMissing)
 	}
 	if *output == "" {
 		missing = append(missing, "-o")
@@ -74,22 +80,22 @@ func (c *ConvertCommand) Run(args []string) error {
 		return fmt.Errorf("invalid --target %q, must be one of: %v", *target, validConvertTargets)
 	}
 
-	client, err := webfunction.FromPackageEndpoint(*url, webfunction.Options{})
+	loaded, err := loadPackage(*url, *file)
 	if err != nil {
-		return fmt.Errorf("fetching package: %w", err)
+		return err
 	}
-	pkg := client.Package()
+	pkg := loaded.pkg
 
 	name := pkg.Name
 	if name == "" {
 		name = "(unnamed package)"
 	}
-	fmt.Printf("Fetched %s (%d endpoint(s)) from %s\n", name, len(pkg.Endpoints), *url)
+	fmt.Printf("%s %s (%d endpoint(s)) from %s\n", loaded.verb, name, len(pkg.Endpoints), loaded.from)
 	if *private {
 		fmt.Println("Including private endpoints, arguments, and attributes (--private)")
 	}
 
-	warnGenerics(warnWriter, pkg, *url)
+	warnGenerics(warnWriter, pkg, loaded.from)
 
 	var out string
 	switch *target {
