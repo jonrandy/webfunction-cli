@@ -1,0 +1,35 @@
+# Generated client for the Flawed Example API webfunction package.
+# Source: https://example.test/package
+#
+# Wraps the real web_function gem (github.com/robinclart/web_function) -
+# every method here calls straight through to the real dynamic client.
+module WebFunctionClient
+  class TypedPage[out Item]
+    include Enumerable[Item]
+
+    def initialize: (untyped real_page, Class? item_class) -> void
+    def page: () -> Array[Item]
+    def next?: () -> bool
+    def previous?: () -> bool
+    def next_page: () -> TypedPage[Item]?
+    def previous_page: () -> TypedPage[Item]?
+  end
+
+  Undefined: untyped
+
+  class Client
+    def initialize: (untyped real_client) -> void
+    def self.from_package_endpoint: (String url, ?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client
+
+    def list_people: (?status: "active" | "inactive" | 1) -> TypedPage[untyped]
+    def list_people2: () -> Array[untyped]
+    def get_blob: () -> Hash[String, untyped]
+    def get_anything: () -> Array[untyped]
+
+    def call: (String endpoint_name, ?Hash[Symbol, untyped] args) -> untyped
+    def package: () -> untyped
+    def bearer_auth=: (String?) -> void
+    def version=: (String?) -> void
+    def pipeline=: (untyped) -> void
+  end
+end
