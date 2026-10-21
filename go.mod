@@ -3,7 +3,7 @@ module wfn
 go 1.18
 
 require (
-	github.com/webfunction-protocol/webfunction-go v0.4.1
+	github.com/webfunction-protocol/webfunction-go v0.5.0
 	github.com/yuin/goldmark v1.6.0
 )
 

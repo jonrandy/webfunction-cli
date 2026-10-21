@@ -15,8 +15,9 @@
       "arguments": [{ "name": "plain", "type": "string" }],
       "attributes": [{ "name": "value", "type": "T" }]
     },
-    { "name": "holder", "attributes": [{ "name": "inner", "type": { "object.list": "object.user" } }] },
-    { "name": "nested-holder", "attributes": [{ "name": "deep", "type": { "object.list": { "object.list": "object.user" } } }] },
+    { "name": "chain", "attributes": [{ "name": "next", "type": { "object.chain": "T" } }, { "name": "value", "type": "T" }] },
+    { "name": "ping", "attributes": [{ "name": "other", "type": { "object.pong": "T" } }, { "name": "value", "type": "T" }] },
+    { "name": "pong", "attributes": [{ "name": "others", "type": { "object.ping": [["T"]] } }] },
     { "name": "ListOfUser", "attributes": [{ "name": "x", "type": "string" }] }
   ],
   "endpoints": [
@@ -27,6 +28,9 @@
     { "name": "bad-arg", "returns": { "object.list": 5 }, "arguments": [] },
     { "name": "ghost-arg", "returns": { "object.list": "object.ghost" }, "arguments": [] },
     { "name": "wrong-context", "returns": "object.user", "arguments": [{ "name": "m", "type": { "object.mixed": "string" } }] },
-    { "name": "collides", "returns": { "object.list": "object.user" }, "arguments": [] }
+    { "name": "collides", "returns": { "object.list": "object.user" }, "arguments": [] },
+    { "name": "t-return", "returns": "T", "arguments": [] },
+    { "name": "t-argument", "returns": "string", "arguments": [{ "name": "v", "type": ["T", "string"] }] },
+    { "name": "t-applied", "returns": { "object.list": "T" }, "arguments": [] }
   ]
 }
