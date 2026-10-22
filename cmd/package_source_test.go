@@ -100,8 +100,8 @@ func TestLoadPackageFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if pkg == nil || len(pkg.Endpoints) != 4 {
-		t.Fatalf("expected the 4-endpoint fixture, got %+v", pkg)
+	if pkg == nil || len(pkg.Endpoints) != 10 {
+		t.Fatalf("expected the 10-endpoint fixture, got %+v", pkg)
 	}
 	if want := "file://" + filepath.ToSlash(absPath(t, rel)); !strings.HasSuffix(from, "/testdata/validate/generics-clean.json") || !strings.HasPrefix(from, "file:///") || strings.Contains(from, "..") {
 		t.Errorf("location should be an absolute file:// URL like %q, got %q", want, from)

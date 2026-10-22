@@ -5,8 +5,8 @@
 //
 // A generic object is an object definition whose member types use the bare
 // token "T" (in its arguments, its attributes, or both). A generic is
-// applied to a type wherever a type is written outside an object
-// definition: { "object.list": "object.user" }. Expand replaces every
+// applied to a type anywhere a type is expected, including inside other
+// object definitions: { "object.list": "object.user" }. Expand replaces every
 // application with a reference to a generated object (here "ListOfUser")
 // whose members have "T" substituted, and drops the generic templates
 // themselves from the result.
@@ -27,7 +27,8 @@ import (
 
 // maxDepth bounds how deeply instantiations may nest. Valid packages never
 // get near it; it exists so invalid polymorphic recursion (a generic that
-// applies itself to something larger than T) terminates, with the
+// applies itself to something larger than T, which the validator reports as
+// generic-application-cycle) terminates, with the
 // over-deep application resolving to "any".
 const maxDepth = 32
 

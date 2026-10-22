@@ -237,6 +237,8 @@ func TestGenericApplicationCycles(t *testing.T) {
 		{"through an array element", generic("a", member("x", `{"object.b":[["T"]]}`)) + "," + generic("b", member("y", `{"array":{"object.a":"T"}}`)), 1, `object "a"`, "a -> b -> a"},
 		{"through a union", generic("a", member("x", `[{"object.b":"T"},"null"]`)) + "," + generic("b", member("y", `[[{"object.a":"T"}]]`)), 1, `object "a"`, "a -> b -> a"},
 		{"through an argument member", `{"name":"a","arguments":[{"name":"x","type":{"object.b":"T"}}],"attributes":[{"name":"v","type":"T"}]},{"name":"b","arguments":[{"name":"p","type":"T"}],"attributes":[{"name":"v","type":"T"},{"name":"y","type":{"object.a":"T"}}]}`, 1, `object "a"`, "a -> b -> a"},
+		{"reaching a cycle without being in it", generic("a", member("x", `{"object.b":"T"}`)) + "," + generic("b", member("y", `{"object.b":"T"}`)), 1, `object "b"`, "b -> b"},
+		{"a search that backtracks", generic("a", member("x", `{"object.b":"T"}`), member("y", `{"object.c":"T"}`)) + "," + generic("b") + "," + generic("c", member("z", `{"object.a":"T"}`)), 1, `object "a"`, "a -> c -> a"},
 		{"two separate cycles", generic("a", member("x", `{"object.a":"T"}`)) + "," + generic("b", member("y", `{"object.b":"T"}`)), 2, "", ""},
 		// Not cycles.
 		{"a generic applying another generic", generic("a", member("x", `{"object.b":"T"}`)) + "," + generic("b"), 0, "", ""},
