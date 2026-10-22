@@ -116,6 +116,7 @@ func (c *CodegenCommand) Run(args []string) error {
 		name = "(unnamed package)"
 	}
 	fmt.Printf("%s %s (%d endpoint(s)) from %s\n", loaded.verb, name, len(pkg.Endpoints), loaded.from)
+	warnGenerics(warnWriter, pkg, loaded.from)
 	if *private {
 		if contains(privateTargets, *target) {
 			fmt.Println("Including private endpoints, arguments, and attributes (--private)")

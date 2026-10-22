@@ -82,6 +82,8 @@ func TestWarnGenericsFlawedPackage(t *testing.T) {
 		"generic-name-collision",
 		"dangling-object-ref", // the ghost inside an application's argument
 		"generic-argument-unused-in-context",
+		"generic-parameter-outside-object",
+		"generic-application-cycle",
 	} {
 		if !strings.Contains(all, "["+check+"]") {
 			t.Errorf("no warning for %s in:\n%s", check, all)
