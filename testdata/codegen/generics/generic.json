@@ -1,0 +1,93 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Generics Codegen Test",
+  "endpoints": [
+    {
+      "name": "list-users",
+      "returns": { "object.list": "object.user" },
+      "arguments": [
+        { "name": "filter", "type": { "object.filter": "string" } },
+        { "name": "debug_trace", "type": "boolean", "flags": ["private"] }
+      ],
+      "attributes": []
+    },
+    { "name": "list-users-or-null", "returns": { "object.list": ["object.user", "null"] }, "arguments": [], "attributes": [] },
+    { "name": "page-of-pages", "returns": { "object.page": { "object.page": "object.user" } }, "arguments": [], "attributes": [] },
+    { "name": "page-of-arrays", "returns": { "object.page": { "array": "object.user" } }, "arguments": [], "attributes": [] },
+    { "name": "pairs", "returns": { "array": { "object.pair": "number" } }, "arguments": [], "attributes": [] },
+    {
+      "name": "convert",
+      "returns": { "object.both": "number" },
+      "arguments": [{ "name": "payload", "type": { "object.both": "string" }, "flags": ["required"] }],
+      "attributes": []
+    },
+    { "name": "get-holder", "returns": "object.holder", "arguments": [], "attributes": [] },
+    { "name": "get-wrapper", "returns": { "object.wrapper": "string" }, "arguments": [], "attributes": [] },
+    { "name": "list-audit", "returns": { "object.page": "object.audit" }, "flags": ["private"], "arguments": [], "attributes": [] }
+  ],
+  "objects": [
+    {
+      "name": "user",
+      "attributes": [
+        { "name": "id", "type": "string.uuid" },
+        { "name": "name", "type": "string" },
+        { "name": "recovery_code", "type": "string", "flags": ["private"] }
+      ]
+    },
+    {
+      "name": "list",
+      "attributes": [
+        { "name": "items", "type": [["T"]] },
+        { "name": "total", "type": "number.u32" },
+        { "name": "cursor", "type": "string", "flags": ["private"] }
+      ]
+    },
+    {
+      "name": "page",
+      "attributes": [
+        { "name": "results", "type": [["T"]] },
+        { "name": "has_more", "type": "boolean" }
+      ]
+    },
+    {
+      "name": "filter",
+      "arguments": [
+        { "name": "value", "type": "T", "flags": ["required"] },
+        { "name": "operator", "type": "string" }
+      ]
+    },
+    {
+      "name": "pair",
+      "attributes": [
+        { "name": "first", "type": "T" },
+        { "name": "second", "type": "T" }
+      ]
+    },
+    {
+      "name": "both",
+      "arguments": [{ "name": "input", "type": "T" }],
+      "attributes": [{ "name": "output", "type": "T" }]
+    },
+    {
+      "name": "wrapper",
+      "attributes": [
+        { "name": "items", "type": { "array": "T" } },
+        { "name": "pair", "type": { "object.pair": "T" } }
+      ]
+    },
+    {
+      "name": "holder",
+      "attributes": [
+        { "name": "users", "type": { "object.list": "object.user" } },
+        { "name": "tags", "type": { "array": "string" } }
+      ]
+    },
+    {
+      "name": "audit",
+      "attributes": [
+        { "name": "at", "type": "number" },
+        { "name": "note", "type": "string" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Generics Codegen Test",
+  "endpoints": [
+    {
+      "name": "list-users",
+      "returns": "object.ListOfUser",
+      "arguments": [
+        { "name": "filter", "type": "object.FilterOfString" },
+        { "name": "debug_trace", "type": "boolean", "flags": ["private"] }
+      ],
+      "attributes": []
+    },
+    { "name": "list-users-or-null", "returns": "object.ListOfUserOrNull", "arguments": [], "attributes": [] },
+    { "name": "page-of-pages", "returns": "object.PageOfPageOfUser", "arguments": [], "attributes": [] },
+    { "name": "page-of-arrays", "returns": "object.PageOfArrayOfUser", "arguments": [], "attributes": [] },
+    { "name": "pairs", "returns": [["object.PairOfNumber"]], "arguments": [], "attributes": [] },
+    {
+      "name": "convert",
+      "returns": "object.BothOfNumber",
+      "arguments": [{ "name": "payload", "type": "object.BothOfString", "flags": ["required"] }],
+      "attributes": []
+    },
+    { "name": "get-holder", "returns": "object.holder", "arguments": [], "attributes": [] },
+    { "name": "get-wrapper", "returns": "object.WrapperOfString", "arguments": [], "attributes": [] },
+    { "name": "list-audit", "returns": "object.PageOfAudit", "flags": ["private"], "arguments": [], "attributes": [] }
+  ],
+  "objects": [
+    {
+      "name": "user",
+      "attributes": [
+        { "name": "id", "type": "string.uuid" },
+        { "name": "name", "type": "string" },
+        { "name": "recovery_code", "type": "string", "flags": ["private"] }
+      ]
+    },
+    {
+      "name": "holder",
+      "attributes": [
+        { "name": "users", "type": "object.ListOfUser" },
+        { "name": "tags", "type": [["string"]] }
+      ]
+    },
+    {
+      "name": "audit",
+      "attributes": [
+        { "name": "at", "type": "number" },
+        { "name": "note", "type": "string" }
+      ]
+    },
+    {
+      "name": "ListOfUser",
+      "attributes": [
+        { "name": "items", "type": [["object.user"]] },
+        { "name": "total", "type": "number.u32" },
+        { "name": "cursor", "type": "string", "flags": ["private"] }
+      ]
+    },
+    {
+      "name": "FilterOfString",
+      "arguments": [
+        { "name": "value", "type": "string", "flags": ["required"] },
+        { "name": "operator", "type": "string" }
+      ]
+    },
+    {
+      "name": "ListOfUserOrNull",
+      "attributes": [
+        { "name": "items", "type": [["object.user", "null"]] },
+        { "name": "total", "type": "number.u32" },
+        { "name": "cursor", "type": "string", "flags": ["private"] }
+      ]
+    },
+    {
+      "name": "PageOfUser",
+      "attributes": [
+        { "name": "results", "type": [["object.user"]] },
+        { "name": "has_more", "type": "boolean" }
+      ]
+    },
+    {
+      "name": "PageOfPageOfUser",
+      "attributes": [
+        { "name": "results", "type": [["object.PageOfUser"]] },
+        { "name": "has_more", "type": "boolean" }
+      ]
+    },
+    {
+      "name": "PageOfArrayOfUser",
+      "attributes": [
+        { "name": "results", "type": [[["object.user"]]] },
+        { "name": "has_more", "type": "boolean" }
+      ]
+    },
+    {
+      "name": "PairOfNumber",
+      "attributes": [
+        { "name": "first", "type": "number" },
+        { "name": "second", "type": "number" }
+      ]
+    },
+    {
+      "name": "BothOfNumber",
+      "arguments": [{ "name": "input", "type": "number" }],
+      "attributes": [{ "name": "output", "type": "number" }]
+    },
+    {
+      "name": "BothOfString",
+      "arguments": [{ "name": "input", "type": "string" }],
+      "attributes": [{ "name": "output", "type": "string" }]
+    },
+    {
+      "name": "PairOfString",
+      "attributes": [
+        { "name": "first", "type": "string" },
+        { "name": "second", "type": "string" }
+      ]
+    },
+    {
+      "name": "WrapperOfString",
+      "attributes": [
+        { "name": "items", "type": [["string"]] },
+        { "name": "pair", "type": "object.PairOfString" }
+      ]
+    },
+    {
+      "name": "PageOfAudit",
+      "attributes": [
+        { "name": "results", "type": [["object.audit"]] },
+        { "name": "has_more", "type": "boolean" }
+      ]
+    }
+  ]
+}
