@@ -64,11 +64,16 @@ wfn codegen --target go --url https://example.com/pkg --file ./package.json -o c
 
 A package can define single-parameter generic objects: an object definition
 that uses the bare type `T`, applied with a single-key object such as
-`{ "object.list": "object.user" }`. Support in this tool:
+`{ "object.list": "object.user" }`. `{ "array": "object.user" }` is an array of
+a type, the same as `[["object.user"]]`. An application can appear anywhere a
+type is expected, including inside object definitions. `T` is only in scope
+inside the object definition that uses it, and a generic object must not apply
+itself, directly or through other generic objects (see the
+[generics spec](https://webfunction.org/generics)). Support in this tool:
 
 - `validate` checks how generics are used: unapplied generics, malformed
-  applications, applications inside object definitions, name collisions, and
-  so on.
+  applications, `T` used outside an object definition, generic objects that
+  apply themselves, name collisions, and so on.
 - `convert` expands each application into a concrete type before converting.
   For OpenAPI, `{ "object.list": "object.user" }` becomes a `ListOfUser`
   component. Output for packages that don't use generics is unchanged.
