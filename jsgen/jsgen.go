@@ -6,6 +6,7 @@ import (
 
 	"github.com/webfunction-protocol/webfunction-go"
 
+	"wfn/generics"
 	"wfn/privatefilter"
 )
 
@@ -38,9 +39,14 @@ type endpointTypedefs struct {
 // get full intellisense on both the call args and the result, not just a
 // generic Object.
 //
+// Generic objects are expanded first (generics.Expand): every application
+// becomes an ordinary generated object such as ListOfUser, and the generic
+// templates are not emitted.
+//
 // Anything flagged "private" - endpoints, arguments, and attributes - is
 // left out of the generated code unless includePrivate is true.
 func Generate(pkg *webfunction.Package, sourceURL string, includePrivate bool) (string, error) {
+	pkg = generics.Expand(pkg)
 	if !includePrivate {
 		pkg = privatefilter.Apply(pkg)
 	}
