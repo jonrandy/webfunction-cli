@@ -56,6 +56,7 @@ import (
 
 	"github.com/webfunction-protocol/webfunction-go"
 
+	"wfn/generics"
 	"wfn/privatefilter"
 )
 
@@ -65,9 +66,14 @@ import (
 // reintroduced now that v2 actually has a generated class to namespace
 // - v1 had none). Returns (rubySource, rbsSource, error).
 //
+// Generic objects are expanded first (generics.Expand): every application
+// becomes an ordinary generated object such as ListOfUser, and the generic
+// templates are not emitted.
+//
 // Anything flagged "private" - endpoints, arguments, and attributes - is
 // left out of both generated files unless includePrivate is true.
 func Generate(pkg *webfunction.Package, sourceURL, moduleName string, includePrivate bool) (rubySource, rbsSource string, err error) {
+	pkg = generics.Expand(pkg)
 	if moduleName == "" {
 		moduleName = "WebFunctionClient"
 	}

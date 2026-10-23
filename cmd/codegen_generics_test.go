@@ -21,7 +21,7 @@ import (
 
 // monomorphTargets lists the codegen targets that expand generics so far.
 // Each step of the rollout adds one; every test below runs for all of them.
-var monomorphTargets = []string{"js", "go", "php", "python", "java", "csharp"}
+var monomorphTargets = []string{"js", "go", "php", "python", "java", "csharp", "ruby"}
 
 func genericsFixture(name string) string {
 	return filepath.Join("..", "testdata", "codegen", "generics", name)
@@ -162,7 +162,13 @@ func TestCodegenNamesTheGeneratedObjects(t *testing.T) {
 	for _, target := range monomorphTargets {
 		t.Run(target, func(t *testing.T) {
 			out := allFiles(generateCode(t, target, genericsFixture("generic.json"), false))
-			for _, name := range []string{"ListOfUser", "ListOfUserOrNull", "PageOfUser", "PageOfPageOfUser", "PageOfArrayOfUser", "PairOfNumber", "PairOfString", "BothOfNumber", "WrapperOfString", "FilterOfString"} {
+			names := []string{"ListOfUser", "ListOfUserOrNull", "PageOfUser", "PageOfPageOfUser", "PageOfArrayOfUser", "PairOfNumber", "PairOfString", "BothOfNumber", "WrapperOfString"}
+			if target != "ruby" {
+				// Ruby forwards arguments as plain keyword arguments and gives an
+				// arguments-only object no class, in the twin as well.
+				names = append(names, "FilterOfString")
+			}
+			for _, name := range names {
 				if !strings.Contains(out, name) {
 					t.Errorf("the generated code should contain %s", name)
 				}
