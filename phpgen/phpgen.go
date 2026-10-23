@@ -58,6 +58,7 @@ import (
 
 	"github.com/webfunction-protocol/webfunction-go"
 
+	"wfn/generics"
 	"wfn/privatefilter"
 )
 
@@ -65,9 +66,14 @@ import (
 // namespace is the PHP namespace for the generated class (validated: each
 // backslash-separated segment must be a valid PHP identifier).
 //
+// Generic objects are expanded first (generics.Expand): every application
+// becomes an ordinary generated object such as ListOfUser, and the generic
+// templates are not emitted.
+//
 // Anything flagged "private" - endpoints, arguments, and attributes - is
 // left out of the generated code unless includePrivate is true.
 func Generate(pkg *webfunction.Package, sourceURL, namespace string, includePrivate bool) (string, error) {
+	pkg = generics.Expand(pkg)
 	if err := validateNamespace(namespace); err != nil {
 		return "", err
 	}
