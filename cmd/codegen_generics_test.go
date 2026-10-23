@@ -21,7 +21,7 @@ import (
 
 // monomorphTargets lists the codegen targets that expand generics so far.
 // Each step of the rollout adds one; every test below runs for all of them.
-var monomorphTargets = []string{"js", "go", "php"}
+var monomorphTargets = []string{"js", "go", "php", "python"}
 
 func genericsFixture(name string) string {
 	return filepath.Join("..", "testdata", "codegen", "generics", name)
