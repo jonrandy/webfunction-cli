@@ -1,10 +1,14 @@
 # testdata/convert/
 
-Fixtures for `wfn convert`. Every fixture here, plus the non-generic ones in
-`testdata/validate/` (the `generics-*` ones are skipped on purpose), is run
-through `openapiconvert.Generate` / `postmanconvert.Generate` by
-`golden_test.go` in each package, with and without `includePrivate`, and
-compared byte-for-byte with `golden/{openapi,postman}/<dir>-<fixture>.<public|private>.json`.
+Fixtures for `wfn convert`. Every fixture here, plus the ones in
+`testdata/validate/` and the generic packages in `testdata/codegen/generics/`
+(`generic.json` and `collision.json`), is run through
+`openapiconvert.Generate` / `postmanconvert.Generate` by `golden_test.go` in
+each package, with and without `includePrivate`, and compared byte-for-byte
+with `golden/{openapi,postman}/<dir>-<fixture>.<public|private>.json`. The
+`generics-*` fixtures are included: both converters expand generics, and
+`generics_test.go` in each package checks the result in detail (array
+applications, applications inside objects, recursion).
 After an intended output change, regenerate with `go test ./openapiconvert
 ./postmanconvert -run TestGoldenOutput -update` and review the diff.
 

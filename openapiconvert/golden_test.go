@@ -14,22 +14,17 @@ import (
 var update = flag.Bool("update", false, "rewrite the golden files from the current converter output")
 
 // goldenInputs lists the fixture packages whose OpenAPI output is pinned
-// byte-for-byte. Fixtures using generics (generics-*.json) are left out on
-// purpose: their output is expected to change as generics support lands.
+// byte-for-byte: every validate and convert fixture, generic or not, plus
+// the generic packages made for codegen.
 func goldenInputs(t *testing.T) []string {
 	t.Helper()
 	var files []string
-	for _, pattern := range []string{"validate/*.json", "convert/*.json"} {
+	for _, pattern := range []string{"validate/*.json", "convert/*.json", "codegen/generics/generic.json", "codegen/generics/collision.json"} {
 		matches, err := filepath.Glob(filepath.Join("..", "testdata", pattern))
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, m := range matches {
-			if strings.HasPrefix(filepath.Base(m), "generics-") {
-				continue
-			}
-			files = append(files, m)
-		}
+		files = append(files, matches...)
 	}
 	if len(files) == 0 {
 		t.Fatal("no fixtures found")
@@ -50,8 +45,8 @@ func loadPackage(t *testing.T, path string) *webfunction.Package {
 	return &pkg
 }
 
-// TestGoldenOutput pins the converter's output for every non-generic
-// fixture, with and without --private, so later changes can prove they
+// TestGoldenOutput pins the converter's output for every fixture,
+// generic or not, with and without --private, so later changes can prove they
 // leave existing packages byte-identical. Run with -update to rewrite the
 // golden files deliberately.
 func TestGoldenOutput(t *testing.T) {

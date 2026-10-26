@@ -285,3 +285,121 @@ func TestGenerateWithGenericsIsPureAndDeterministic(t *testing.T) {
 		t.Errorf("Generate mutated its input package (returns %q -> %q, %d objects)", before, after, len(pkg.Objects))
 	}
 }
+
+// ---- Array applications, applications inside objects, and recursion -------
+
+const (
+	arrUser = `{"name":"user","attributes":[{"name":"id","type":"string"}]}`
+	arrList = `{"name":"list","attributes":[{"name":"items","type":[["T"]]}]}`
+	arrPair = `{"name":"pair","attributes":[{"name":"first","type":"T"},{"name":"second","type":"T"}]}`
+)
+
+// getReturning is an endpoint returning the given type.
+func getReturning(returns string) string {
+	return `{"name":"get","returns":` + returns + `,"arguments":[]}`
+}
+
+// Spec (Generics): { "array": X } is an array of X, the same as [[X]].
+func TestArrayApplicationConvertsLikeNestedArray(t *testing.T) {
+	pairs := [][2]string{
+		{`{"array":"object.user"}`, `[["object.user"]]`},
+		{`{"array":["object.user","null"]}`, `[["object.user","null"]]`},
+		{`{"array":{"array":"object.user"}}`, `[[["object.user"]]]`},
+		{`{"object.list":{"array":"object.user"}}`, `{"object.list":[["object.user"]]}`},
+		{`{"array":{"object.pair":"number"}}`, `[[{"object.pair":"number"}]]`},
+	}
+	for _, p := range pairs {
+		convert := func(returns string) string {
+			out, err := Generate(parsePackage(t, pkgJSON(arrUser+","+arrList+","+arrPair, getReturning(returns))), false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return out
+		}
+		if got, want := convert(p[0]), convert(p[1]); got != want {
+			t.Errorf("%s should convert exactly like %s", p[0], p[1])
+		}
+	}
+}
+
+func TestArrayApplicationSchema(t *testing.T) {
+	doc := generate(t, parsePackage(t, pkgJSON(arrUser, getReturning(`{"array":"object.user"}`))), false)
+	if got := schemaKeys(doc); !reflect.DeepEqual(got, []string{"User"}) {
+		t.Errorf("schema keys: got %v, want [User]", got)
+	}
+	paths, _ := json.Marshal(doc["paths"])
+	if !strings.Contains(string(paths), `"items":{"$ref":"#/components/schemas/User"}`) || !strings.Contains(string(paths), `"type":"array"`) {
+		t.Errorf("the response should be an array of User, got %s", paths)
+	}
+}
+
+// An application inside an object definition becomes a reference to the
+// generated schema, wherever the object is used.
+func TestApplicationsInsideObjectsConvert(t *testing.T) {
+	holder := `{"name":"holder","attributes":[{"name":"users","type":{"object.list":"object.user"}},{"name":"pairs","type":{"array":{"object.pair":"number"}}}]}`
+	doc := generate(t, parsePackage(t, pkgJSON(arrUser+","+arrList+","+arrPair+","+holder, getReturning(`"object.holder"`))), false)
+	if got, want := schemaKeys(doc), []string{"Holder", "ListOfUser", "PairOfNumber", "User"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("schema keys:\n got %v\nwant %v", got, want)
+	}
+	props, _ := schemaOf(doc, "Holder")["properties"].(map[string]any)
+	if !contains(refsIn(props["users"]), refPrefix+"ListOfUser") {
+		t.Errorf("Holder.users should reference ListOfUser, got %v", props["users"])
+	}
+	if !contains(refsIn(props["pairs"]), refPrefix+"PairOfNumber") {
+		t.Errorf("Holder.pairs should be an array of PairOfNumber, got %v", props["pairs"])
+	}
+	assertRefsResolve(t, doc)
+}
+
+// Recursion that the spec allows becomes a self-reference, not a loop.
+func TestRecursiveObjectsConvert(t *testing.T) {
+	comment := `{"name":"comment","attributes":[{"name":"message","type":"string"},{"name":"replies","type":{"array":"object.comment"}}]}`
+	thread := `{"name":"thread","attributes":[{"name":"comments","type":{"object.list":"object.thread"}}]}`
+	doc := generate(t, parsePackage(t, pkgJSON(arrList+","+comment+","+thread, getReturning(`[["object.comment","object.thread"]]`))), false)
+	if got, want := schemaKeys(doc), []string{"Comment", "ListOfThread", "Thread"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("schema keys:\n got %v\nwant %v", got, want)
+	}
+	replies, _ := schemaOf(doc, "Comment")["properties"].(map[string]any)
+	if got := refsIn(replies["replies"]); !reflect.DeepEqual(got, []string{refPrefix + "Comment"}) {
+		t.Errorf("Comment.replies should be an array of Comment, got %v", replies["replies"])
+	}
+	thr, _ := schemaOf(doc, "Thread")["properties"].(map[string]any)
+	if got := refsIn(thr["comments"]); !reflect.DeepEqual(got, []string{refPrefix + "ListOfThread"}) {
+		t.Errorf("Thread.comments should reference ListOfThread, got %v", thr["comments"])
+	}
+	lot, _ := schemaOf(doc, "ListOfThread")["properties"].(map[string]any)
+	if got := refsIn(lot["items"]); !reflect.DeepEqual(got, []string{refPrefix + "Thread"}) {
+		t.Errorf("ListOfThread.items should reference Thread, got %v", lot["items"])
+	}
+	assertRefsResolve(t, doc)
+}
+
+// Invalid polymorphic recursion (a generic applying itself to something
+// larger than T) is cut off by Expand's depth limit: the output is big but
+// finite, and every reference still resolves.
+func TestPolymorphicRecursionStillConverts(t *testing.T) {
+	chain := `{"name":"chain","attributes":[{"name":"value","type":"T"},{"name":"next","type":{"object.chain":[["T"]]}}]}`
+	doc := generate(t, parsePackage(t, pkgJSON(chain, getReturning(`{"object.chain":"string"}`))), false)
+	if n := len(schemaKeys(doc)); n < 2 || n > 40 {
+		t.Errorf("expected a finite pile of generated schemas, got %d", n)
+	}
+	assertRefsResolve(t, doc)
+}
+
+func TestGenericCodegenFixturesConvertWithResolvedRefs(t *testing.T) {
+	for _, path := range []string{"../testdata/codegen/generics/generic.json", "../testdata/codegen/generics/collision.json", "../testdata/validate/generics-clean.json"} {
+		for _, includePrivate := range []bool{false, true} {
+			assertRefsResolve(t, generate(t, loadPackage(t, path), includePrivate))
+		}
+	}
+}
+
+// A generated schema that clashes with a user object keeps both, the
+// second numbered.
+func TestGeneratedSchemaClashingWithUserObjectKeepsBoth(t *testing.T) {
+	doc := generate(t, loadPackage(t, "../testdata/codegen/generics/collision.json"), false)
+	if got, want := schemaKeys(doc), []string{"ListOfUser", "ListOfUser2", "User"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("schema keys:\n got %v\nwant %v", got, want)
+	}
+	assertRefsResolve(t, doc)
+}

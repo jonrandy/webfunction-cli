@@ -1,0 +1,344 @@
+{
+  "info": {
+    "name": "Generics Flawed API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "unapplied",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/unapplied",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "unapplied"
+          ]
+        }
+      }
+    },
+    {
+      "name": "static-arg",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/static-arg",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "static-arg"
+          ]
+        }
+      }
+    },
+    {
+      "name": "empty-app",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/empty-app",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "empty-app"
+          ]
+        }
+      }
+    },
+    {
+      "name": "bad-key",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/bad-key",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "bad-key"
+          ]
+        }
+      }
+    },
+    {
+      "name": "bad-arg",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/bad-arg",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "bad-arg"
+          ]
+        }
+      }
+    },
+    {
+      "name": "ghost-arg",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/ghost-arg",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "ghost-arg"
+          ]
+        }
+      }
+    },
+    {
+      "name": "wrong-context",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"m\": {\n    \"plain\": \"\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/wrong-context",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "wrong-context"
+          ]
+        }
+      }
+    },
+    {
+      "name": "collides",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/collides",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "collides"
+          ]
+        }
+      }
+    },
+    {
+      "name": "t-return",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/t-return",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "t-return"
+          ]
+        }
+      }
+    },
+    {
+      "name": "t-argument",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"v\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/t-argument",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "t-argument"
+          ]
+        }
+      }
+    },
+    {
+      "name": "t-applied",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/t-applied",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "t-applied"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.example.com"
+    }
+  ]
+}

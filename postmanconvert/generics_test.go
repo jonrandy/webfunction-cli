@@ -244,3 +244,81 @@ func TestGenerateWithGenericsIsPureAndDeterministic(t *testing.T) {
 		t.Error("Generate mutated its input package")
 	}
 }
+
+// ---- Array applications, applications inside objects, and recursion -------
+
+const (
+	nodeObject   = `{"name":"node","arguments":[{"name":"label","type":"string"},{"name":"children","type":{"array":"object.node"}}]}`
+	listObject   = `{"name":"list","arguments":[{"name":"items","type":[["T"]]}]}`
+	threadObject = `{"name":"thread","arguments":[{"name":"comments","type":{"object.list":"object.thread"}}]}`
+	holderObject = `{"name":"holder","arguments":[{"name":"inner","type":{"object.wrapper":"number"}},{"name":"many","type":{"array":{"object.wrapper":"string"}}}]}`
+	chainObject  = `{"name":"chain","arguments":[{"name":"value","type":"T"},{"name":"next","type":{"object.chain":[["T"]]}}]}`
+)
+
+// exampleOf converts a package whose one endpoint takes an argument of
+// argType and returns that argument's example value.
+func exampleOf(t *testing.T, objects, argType string) any {
+	t.Helper()
+	return requestBody(t, parsePackage(t, pkgJSON(objects, run(argType))), false, "run")["arg"]
+}
+
+// Spec (Generics): { "array": X } is an array of X, the same as [[X]].
+func TestArrayApplicationExamples(t *testing.T) {
+	cases := []struct{ name, argType, legacy, want string }{
+		{"array of a number", `{"array":"number"}`, `[["number"]]`, `[0]`},
+		{"array of arrays", `{"array":{"array":"string"}}`, `[[["string"]]]`, `[[""]]`},
+		{"application of an array application", `{"object.wrapper":{"array":"number"}}`, `{"object.wrapper":[["number"]]}`, `{"value":[0],"items":[[0]]}`},
+		{"array of applications", `{"array":{"object.wrapper":"number"}}`, `[[{"object.wrapper":"number"}]]`, `[{"value":0,"items":[0]}]`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := exampleOf(t, wrapper, c.argType)
+			if want := decode(t, c.want); !reflect.DeepEqual(got, want) {
+				g, _ := json.Marshal(got)
+				t.Errorf("example:\n got %s\nwant %s", g, c.want)
+			}
+			if legacy := exampleOf(t, wrapper, c.legacy); !reflect.DeepEqual(got, legacy) {
+				t.Errorf("%s should give the same example as %s", c.argType, c.legacy)
+			}
+		})
+	}
+}
+
+func TestApplicationInsideObjectExample(t *testing.T) {
+	got := exampleOf(t, wrapper+","+holderObject, `"object.holder"`)
+	want := decode(t, `{"inner":{"value":0,"items":[0]},"many":[{"value":"","items":[""]}]}`)
+	if !reflect.DeepEqual(got, want) {
+		g, _ := json.Marshal(got)
+		t.Errorf("holder example: got %s", g)
+	}
+}
+
+// A self-referential argument stops where it would repeat, rendering the
+// repeat as an empty object.
+func TestRecursiveArgumentExamplesTerminate(t *testing.T) {
+	cases := []struct{ name, objects, argType, want string }{
+		{"object with an array of itself", nodeObject, `"object.node"`, `{"label":"","children":[{}]}`},
+		{"object applying a generic to itself", listObject + "," + threadObject, `"object.thread"`, `{"comments":{"items":[{}]}}`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := exampleOf(t, c.objects, c.argType)
+			if want := decode(t, c.want); !reflect.DeepEqual(got, want) {
+				g, _ := json.Marshal(got)
+				t.Errorf("example:\n got %s\nwant %s", g, c.want)
+			}
+		})
+	}
+}
+
+// Invalid polymorphic recursion is cut off by Expand's depth limit, so the
+// example nests deeply but finitely.
+func TestPolymorphicRecursionExampleIsFinite(t *testing.T) {
+	depth := 0
+	for v, _ := exampleOf(t, chainObject, `{"object.chain":"string"}`).(map[string]any); v != nil; depth++ {
+		v, _ = v["next"].(map[string]any)
+	}
+	if depth < 2 || depth > 40 {
+		t.Errorf("expected a finite nesting, got depth %d", depth)
+	}
+}
