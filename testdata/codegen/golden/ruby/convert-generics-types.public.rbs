@@ -1,0 +1,63 @@
+# Generated client for the Generics Convert Test webfunction package.
+# Source: https://example.test/package
+#
+# Wraps the real web_function gem (github.com/robinclart/web_function) -
+# every method here calls straight through to the real dynamic client.
+module WebFunctionClient
+  class UserAttributes
+    def initialize: (untyped raw) -> void
+
+    def id: () -> String
+  end
+
+  class ListOfUserAttributes
+    def initialize: (untyped raw) -> void
+
+    def total: () -> (Integer | Float)
+    def items: () -> Array[UserAttributes]
+  end
+
+  class ListOfUserOrNullAttributes
+    def initialize: (untyped raw) -> void
+
+    def total: () -> (Integer | Float)
+    def items: () -> (Array[UserAttributes | nil])
+  end
+
+  class PageOfUserAttributes
+    def initialize: (untyped raw) -> void
+
+    def results: () -> Array[UserAttributes]
+  end
+
+  class PageOfPageOfUserAttributes
+    def initialize: (untyped raw) -> void
+
+    def results: () -> Array[PageOfUserAttributes]
+  end
+
+  class PairOfNumberAttributes
+    def initialize: (untyped raw) -> void
+
+    def first: () -> (Integer | Float)
+    def second: () -> (Integer | Float)
+  end
+
+  Undefined: untyped
+
+  class Client
+    def initialize: (untyped real_client) -> void
+    def self.from_package_endpoint: (String url, ?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client
+
+    def list_users: (?filter: Hash[Symbol, untyped]) -> ListOfUserAttributes
+    def list_optional_users: () -> ListOfUserOrNullAttributes
+    def nested_pages: () -> PageOfPageOfUserAttributes
+    def pairs: () -> Array[PairOfNumberAttributes]
+
+    def call: (String endpoint_name, ?Hash[Symbol, untyped] args) -> untyped
+    def package: () -> untyped
+    def bearer_auth=: (String?) -> void
+    def version=: (String?) -> void
+    def pipeline=: (untyped) -> void
+  end
+end

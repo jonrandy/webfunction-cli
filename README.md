@@ -29,7 +29,7 @@ wfn <command> [arguments]
 | Command   | Description                                              |
 |-----------|------------------------------------------------------------|
 | `help`    | Show general help, or help for a specific command           |
-| `codegen` | Generate a typed client for a webfunction package (targets: java, go, php, js, csharp, ruby, python; `--private` to include private endpoints, arguments, and attributes; `--file` to read the package from a local JSON file, though `--url` is still required) |
+| `codegen` | Generate a typed client for a webfunction package (targets: java, go, php, js, csharp, ruby, python; `--private` to include private endpoints, arguments, and attributes; `--file` to read the package from a local JSON file, though `--url` is still required); generics are expanded into concrete types |
 | `convert` | Convert a webfunction package to another document format (targets: openapi, postman; `--url` or `--file` for the package; `--private` to include private endpoints, arguments, and attributes; generics are expanded into concrete types) |
 | `validate` | Check a webfunction package's structure, flags, and generics usage, writing a report (formats: json, markdown, html; `--url` or `--file` for the package) |
 
@@ -77,11 +77,22 @@ itself, directly or through other generic objects (see the
 - `convert` expands each application into a concrete type before converting.
   For OpenAPI, `{ "object.list": "object.user" }` becomes a `ListOfUser`
   component. Output for packages that don't use generics is unchanged.
-- `convert` also prints a `warning: generics: ...` line on stderr for each
-  generics problem the validator finds, then carries on, resolving the
-  problem to `any`. It never fails because of them; run `wfn validate` for the
-  full report.
-- `codegen` does not expand generics yet.
+- `codegen` expands generics the same way, for every target, so each
+  application is generated as an ordinary type and the generic definition
+  itself is not emitted. `{ "object.list": "object.user" }` becomes
+  `ListOfUser` (in JavaScript, a `ListOfUserAttributes` typedef). Generated
+  names join the pieces with `Of` and `Or`:
+  - `{ "object.list": ["object.user", "null"] }` is `ListOfUserOrNull`
+  - `{ "object.page": { "array": "object.user" } }` is `PageOfArrayOfUser`
+
+  If a generated name clashes with an object you defined, the generated one
+  gets a number (`ListOfUser2`) and `wfn validate` reports a
+  `generic-name-collision`. Output for packages that don't use generics is
+  unchanged.
+- `convert` and `codegen` also print a `warning: generics: ...` line on stderr
+  for each generics problem the validator finds, then carry on, resolving the
+  problem to `any`. They never fail because of them; run `wfn validate` for
+  the full report.
 
 ## Project layout
 
@@ -93,7 +104,7 @@ itself, directly or through other generic objects (see the
 │   ├── help.go         # the "help" command
 │   ├── codegen.go      # the "codegen" command
 │   ├── convert.go      # the "convert" command
-│   ├── generics_warning.go # generics warnings printed by convert
+│   ├── generics_warning.go # generics warnings printed by convert and codegen
 │   ├── package_source.go   # loads a package from --url or --file, for all commands
 │   └── validate.go     # the "validate" command
 ├── csharpgen/          # codegen --target csharp
@@ -103,12 +114,12 @@ itself, directly or through other generic objects (see the
 ├── phpgen/             # codegen --target php
 ├── pythongen/          # codegen --target python
 ├── rubygen/            # codegen --target ruby
-├── generics/           # expands generic objects into concrete objects (used by validate and convert)
+├── generics/           # expands generic objects into concrete objects (used by validate, convert and codegen)
 ├── openapiconvert/     # convert --target openapi's package-to-OpenAPI-3.1 conversion
 ├── postmanconvert/     # convert --target postman's package-to-Postman-collection conversion
 ├── privatefilter/      # strips private endpoints/arguments/attributes before convert/codegen
 ├── validate/           # the checks and report rendering behind the "validate" command
-└── testdata/           # fixture packages for the validate and convert tests, plus golden converter output
+└── testdata/           # fixture packages for the validate, convert and codegen tests, plus golden converter and codegen output
 ```
 
 Each command implements a small `Command` interface (`Name`, `Summary`,

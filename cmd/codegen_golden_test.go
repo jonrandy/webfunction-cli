@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"flag"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -25,9 +26,10 @@ var codegenExts = map[string][]string{
 
 const goldenSourceURL = "https://example.test/package"
 
-// codegenFixtures lists the fixture packages whose generated code is pinned
-// byte-for-byte. Fixtures using generics (generics-*.json) are left out on
-// purpose: their output is expected to change as generics support lands.
+// codegenFixtures lists the fixture packages without generics whose generated
+// code is pinned byte-for-byte. Fixtures using generics (generics-*.json) are
+// kept apart, in genericFixtures, because codegen warns about generics
+// problems and the non-generic fixtures must stay silent.
 func codegenFixtures(t *testing.T) []string {
 	t.Helper()
 	var files []string
@@ -40,10 +42,28 @@ func codegenFixtures(t *testing.T) []string {
 	return files
 }
 
+// genericFixtures lists the fixture packages that use generics, whose
+// generated code is pinned too: the generics-*.json validate and convert
+// fixtures, plus the codegen-specific generic packages.
+func genericFixtures(t *testing.T) []string {
+	t.Helper()
+	var files []string
+	for _, path := range fixtureFiles(t) {
+		if strings.HasPrefix(filepath.Base(path), "generics-") {
+			files = append(files, path)
+		}
+	}
+	return append(files, genericsFixture("generic.json"), genericsFixture("collision.json"))
+}
+
 // generateCode runs the codegen command on a fixture and returns each file
-// it wrote, keyed by extension.
+// it wrote, keyed by extension. Generics warnings are discarded: the
+// flawed fixtures are meant to trigger them.
 func generateCode(t *testing.T, target, fixture string, private bool) map[string]string {
 	t.Helper()
+	oldWarn := warnWriter
+	warnWriter = io.Discard
+	defer func() { warnWriter = oldWarn }()
 	exts := codegenExts[target]
 	out := filepath.Join(t.TempDir(), "client"+exts[0])
 	args := []string{"--target", target, "--url", goldenSourceURL, "--file", fixture, "-o", out}
@@ -61,13 +81,13 @@ func generateCode(t *testing.T, target, fixture string, private bool) map[string
 }
 
 // TestCodegenGolden pins the code every target generates for every
-// non-generic fixture, so later changes can prove they leave existing
+// fixture, generic or not, so later changes can prove they leave existing
 // packages byte-identical. The --private output is stored only where it
 // differs from the public output; everywhere else it must equal it. Run
 // with -update to rewrite the golden files deliberately.
 func TestCodegenGolden(t *testing.T) {
 	for _, target := range validTargets {
-		for _, fixture := range codegenFixtures(t) {
+		for _, fixture := range append(codegenFixtures(t), genericFixtures(t)...) {
 			name := filepath.Base(filepath.Dir(fixture)) + "-" + strings.TrimSuffix(filepath.Base(fixture), ".json")
 			t.Run(target+"/"+name, func(t *testing.T) {
 				pub := generateCode(t, target, fixture, false)

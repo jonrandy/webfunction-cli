@@ -1,0 +1,128 @@
+# Generated client for the Generics Clean API webfunction package.
+# Source: https://example.test/package
+#
+# Wraps the real web_function gem (github.com/robinclart/web_function) -
+# every method here calls straight through to the real dynamic client.
+module WebFunctionClient
+  class UserAttributes
+    def initialize: (untyped raw) -> void
+
+    def id: () -> String
+  end
+
+  class ListOfUserAttributes
+    def initialize: (untyped raw) -> void
+
+    def total: () -> (Integer | Float)
+    def items: () -> Array[UserAttributes]
+  end
+
+  class ListOfUserOrNullAttributes
+    def initialize: (untyped raw) -> void
+
+    def total: () -> (Integer | Float)
+    def items: () -> (Array[UserAttributes | nil])
+  end
+
+  class PageOfUserAttributes
+    def initialize: (untyped raw) -> void
+
+    def results: () -> Array[UserAttributes]
+  end
+
+  class PageOfPageOfUserAttributes
+    def initialize: (untyped raw) -> void
+
+    def results: () -> Array[PageOfUserAttributes]
+  end
+
+  class PairOfNumberAttributes
+    def initialize: (untyped raw) -> void
+
+    def first: () -> (Integer | Float)
+    def second: () -> (Integer | Float)
+  end
+
+  class HolderAttributes
+    def initialize: (untyped raw) -> void
+
+    def inner: () -> ListOfUserAttributes
+  end
+
+  class ListOfListOfUserAttributes
+    def initialize: (untyped raw) -> void
+
+    def total: () -> (Integer | Float)
+    def items: () -> Array[ListOfUserAttributes]
+  end
+
+  class NestedHolderAttributes
+    def initialize: (untyped raw) -> void
+
+    def deep: () -> ListOfListOfUserAttributes
+  end
+
+  class CommentAttributes
+    def initialize: (untyped raw) -> void
+
+    def message: () -> String
+    def replies: () -> Array[CommentAttributes]
+  end
+
+  class ThreadAttributes
+    def initialize: (untyped raw) -> void
+
+    def comments: () -> ListOfThreadAttributes
+  end
+
+  class ListOfThreadAttributes
+    def initialize: (untyped raw) -> void
+
+    def total: () -> (Integer | Float)
+    def items: () -> Array[ThreadAttributes]
+  end
+
+  class PairOfStringAttributes
+    def initialize: (untyped raw) -> void
+
+    def first: () -> String
+    def second: () -> String
+  end
+
+  class WrapperOfStringAttributes
+    def initialize: (untyped raw) -> void
+
+    def pairs: () -> Array[PairOfStringAttributes]
+    def items: () -> Array[String]
+  end
+
+  class PageOfArrayOfUserAttributes
+    def initialize: (untyped raw) -> void
+
+    def results: () -> Array[Array[UserAttributes]]
+  end
+
+  Undefined: untyped
+
+  class Client
+    def initialize: (untyped real_client) -> void
+    def self.from_package_endpoint: (String url, ?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client
+
+    def list_users: (?filter: Hash[Symbol, untyped]) -> ListOfUserAttributes
+    def list_optional_users: () -> ListOfUserOrNullAttributes
+    def nested_pages: () -> PageOfPageOfUserAttributes
+    def pairs: () -> Array[PairOfNumberAttributes]
+    def get_holders: () -> (Array[HolderAttributes | NestedHolderAttributes])
+    def get_comments: () -> Array[CommentAttributes]
+    def get_threads: () -> ListOfThreadAttributes
+    def wrapped: () -> WrapperOfStringAttributes
+    def page_of_users: () -> PageOfArrayOfUserAttributes
+    def users: () -> Array[UserAttributes]
+
+    def call: (String endpoint_name, ?Hash[Symbol, untyped] args) -> untyped
+    def package: () -> untyped
+    def bearer_auth=: (String?) -> void
+    def version=: (String?) -> void
+    def pipeline=: (untyped) -> void
+  end
+end

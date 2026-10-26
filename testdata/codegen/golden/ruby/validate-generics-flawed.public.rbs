@@ -1,0 +1,58 @@
+# Generated client for the Generics Flawed API webfunction package.
+# Source: https://example.test/package
+#
+# Wraps the real web_function gem (github.com/robinclart/web_function) -
+# every method here calls straight through to the real dynamic client.
+module WebFunctionClient
+  class ListOfAnyAttributes
+    def initialize: (untyped raw) -> void
+
+    def total: () -> (Integer | Float)
+    def items: () -> Array[untyped]
+  end
+
+  class UserAttributes
+    def initialize: (untyped raw) -> void
+
+    def id: () -> String
+  end
+
+  class ListOfGhostAttributes
+    def initialize: (untyped raw) -> void
+
+    def total: () -> (Integer | Float)
+    def items: () -> Array[Hash[String, untyped]]
+  end
+
+  class ListOfUser2Attributes
+    def initialize: (untyped raw) -> void
+
+    def total: () -> (Integer | Float)
+    def items: () -> Array[UserAttributes]
+  end
+
+  Undefined: untyped
+
+  class Client
+    def initialize: (untyped real_client) -> void
+    def self.from_package_endpoint: (String url, ?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client
+
+    def unapplied: () -> ListOfAnyAttributes
+    def static_arg: () -> UserAttributes
+    def empty_app: () -> untyped
+    def bad_key: () -> untyped
+    def bad_arg: () -> untyped
+    def ghost_arg: () -> ListOfGhostAttributes
+    def wrong_context: (?m: Hash[Symbol, untyped]) -> UserAttributes
+    def collides: () -> ListOfUser2Attributes
+    def t_return: () -> untyped
+    def t_argument: (?v: untyped | String) -> String
+    def t_applied: () -> ListOfAnyAttributes
+
+    def call: (String endpoint_name, ?Hash[Symbol, untyped] args) -> untyped
+    def package: () -> untyped
+    def bearer_auth=: (String?) -> void
+    def version=: (String?) -> void
+    def pipeline=: (untyped) -> void
+  end
+end

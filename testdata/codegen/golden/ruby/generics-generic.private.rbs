@@ -1,0 +1,122 @@
+# Generated client for the Generics Codegen Test webfunction package.
+# Source: https://example.test/package
+#
+# Wraps the real web_function gem (github.com/robinclart/web_function) -
+# every method here calls straight through to the real dynamic client.
+module WebFunctionClient
+  class UserAttributes
+    def initialize: (untyped raw) -> void
+
+    def id: () -> String
+    def name: () -> String
+    def recovery_code: () -> String
+  end
+
+  class ListOfUserAttributes
+    def initialize: (untyped raw) -> void
+
+    def items: () -> Array[UserAttributes]
+    def total: () -> Integer
+    def cursor: () -> String
+  end
+
+  class ListOfUserOrNullAttributes
+    def initialize: (untyped raw) -> void
+
+    def items: () -> (Array[UserAttributes | nil])
+    def total: () -> Integer
+    def cursor: () -> String
+  end
+
+  class PageOfUserAttributes
+    def initialize: (untyped raw) -> void
+
+    def results: () -> Array[UserAttributes]
+    def has_more: () -> bool
+  end
+
+  class PageOfPageOfUserAttributes
+    def initialize: (untyped raw) -> void
+
+    def results: () -> Array[PageOfUserAttributes]
+    def has_more: () -> bool
+  end
+
+  class PageOfArrayOfUserAttributes
+    def initialize: (untyped raw) -> void
+
+    def results: () -> Array[Array[UserAttributes]]
+    def has_more: () -> bool
+  end
+
+  class PairOfNumberAttributes
+    def initialize: (untyped raw) -> void
+
+    def first: () -> (Integer | Float)
+    def second: () -> (Integer | Float)
+  end
+
+  class BothOfNumberAttributes
+    def initialize: (untyped raw) -> void
+
+    def output: () -> (Integer | Float)
+  end
+
+  class HolderAttributes
+    def initialize: (untyped raw) -> void
+
+    def users: () -> ListOfUserAttributes
+    def tags: () -> Array[String]
+  end
+
+  class PairOfStringAttributes
+    def initialize: (untyped raw) -> void
+
+    def first: () -> String
+    def second: () -> String
+  end
+
+  class WrapperOfStringAttributes
+    def initialize: (untyped raw) -> void
+
+    def items: () -> Array[String]
+    def pair: () -> PairOfStringAttributes
+  end
+
+  class AuditAttributes
+    def initialize: (untyped raw) -> void
+
+    def at: () -> (Integer | Float)
+    def note: () -> String
+  end
+
+  class PageOfAuditAttributes
+    def initialize: (untyped raw) -> void
+
+    def results: () -> Array[AuditAttributes]
+    def has_more: () -> bool
+  end
+
+  Undefined: untyped
+
+  class Client
+    def initialize: (untyped real_client) -> void
+    def self.from_package_endpoint: (String url, ?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client
+
+    def list_users: (?filter: Hash[Symbol, untyped], ?debug_trace: bool) -> ListOfUserAttributes
+    def list_users_or_null: () -> ListOfUserOrNullAttributes
+    def page_of_pages: () -> PageOfPageOfUserAttributes
+    def page_of_arrays: () -> PageOfArrayOfUserAttributes
+    def pairs: () -> Array[PairOfNumberAttributes]
+    def convert: (payload: Hash[Symbol, untyped]) -> BothOfNumberAttributes
+    def get_holder: () -> HolderAttributes
+    def get_wrapper: () -> WrapperOfStringAttributes
+    def list_audit: () -> PageOfAuditAttributes
+
+    def call: (String endpoint_name, ?Hash[Symbol, untyped] args) -> untyped
+    def package: () -> untyped
+    def bearer_auth=: (String?) -> void
+    def version=: (String?) -> void
+    def pipeline=: (untyped) -> void
+  end
+end

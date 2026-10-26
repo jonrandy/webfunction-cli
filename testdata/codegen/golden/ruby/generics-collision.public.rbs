@@ -1,0 +1,40 @@
+# Generated client for the Generics Collision Test webfunction package.
+# Source: https://example.test/package
+#
+# Wraps the real web_function gem (github.com/robinclart/web_function) -
+# every method here calls straight through to the real dynamic client.
+module WebFunctionClient
+  class UserAttributes
+    def initialize: (untyped raw) -> void
+
+    def id: () -> String
+  end
+
+  class ListOfUserAttributes
+    def initialize: (untyped raw) -> void
+
+    def items: () -> Array[UserAttributes]
+  end
+
+  class ListOfUserAttributes2
+    def initialize: (untyped raw) -> void
+
+    def old_field: () -> bool
+  end
+
+  Undefined: untyped
+
+  class Client
+    def initialize: (untyped real_client) -> void
+    def self.from_package_endpoint: (String url, ?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client
+
+    def list_users: () -> ListOfUserAttributes
+    def get_legacy: () -> ListOfUserAttributes2
+
+    def call: (String endpoint_name, ?Hash[Symbol, untyped] args) -> untyped
+    def package: () -> untyped
+    def bearer_auth=: (String?) -> void
+    def version=: (String?) -> void
+    def pipeline=: (untyped) -> void
+  end
+end
