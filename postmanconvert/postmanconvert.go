@@ -35,6 +35,7 @@ import (
 
 	"github.com/webfunction-protocol/webfunction-go"
 
+	"wfn/generics"
 	"wfn/privatefilter"
 )
 
@@ -43,6 +44,9 @@ const schemaURL = "https://schema.getpostman.com/json/collection/v2.1.0/collecti
 // Generate converts pkg into a Postman collection and returns it as
 // indented JSON.
 func Generate(pkg *webfunction.Package, includePrivate bool) (string, error) {
+	// Expand generics first, as openapiconvert does, so a generic's private
+	// members are copied onto each generated object before the filter runs.
+	pkg = generics.Expand(pkg)
 	if !includePrivate {
 		pkg = privatefilter.Apply(pkg)
 	}

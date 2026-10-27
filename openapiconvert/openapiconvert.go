@@ -31,12 +31,16 @@ import (
 
 	"github.com/webfunction-protocol/webfunction-go"
 
+	"wfn/generics"
 	"wfn/privatefilter"
 )
 
 // Generate converts pkg into an OpenAPI 3.1 document and returns it as
 // indented JSON.
 func Generate(pkg *webfunction.Package, includePrivate bool) (string, error) {
+	// Expand generics first: a generic's private members are copied onto each
+	// generated object, which the private filter below must then see.
+	pkg = generics.Expand(pkg)
 	if !includePrivate {
 		pkg = privatefilter.Apply(pkg)
 	}

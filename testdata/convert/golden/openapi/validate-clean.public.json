@@ -1,0 +1,133 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Clean Example API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ],
+  "paths": {
+    "/get-person": {
+      "post": {
+        "operationId": "getPerson",
+        "summary": "get-person",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Person"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/list-people": {
+      "post": {
+        "operationId": "listPeople",
+        "summary": "list-people",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "inactive"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "next": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Opaque pagination cursor, or null if there is no such page."
+                    },
+                    "page": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/Person"
+                        }
+                      }
+                    },
+                    "previous": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Opaque pagination cursor, or null if there is no such page."
+                    }
+                  },
+                  "required": [
+                    "page"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-webfunction-paginated": true
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Person": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

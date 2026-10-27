@@ -1,0 +1,53 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Generics Collision Test",
+  "endpoints": [
+    {
+      "name": "list-users",
+      "returns": {
+        "object.list": "object.user"
+      },
+      "arguments": [],
+      "attributes": []
+    },
+    {
+      "name": "get-legacy",
+      "returns": "object.list-of-user",
+      "arguments": [],
+      "attributes": []
+    }
+  ],
+  "objects": [
+    {
+      "name": "user",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "list-of-user",
+      "attributes": [
+        {
+          "name": "old_field",
+          "type": "boolean"
+        }
+      ]
+    },
+    {
+      "name": "list",
+      "attributes": [
+        {
+          "name": "items",
+          "type": [
+            [
+              "T"
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

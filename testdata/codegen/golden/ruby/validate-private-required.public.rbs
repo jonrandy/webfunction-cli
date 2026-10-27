@@ -1,0 +1,27 @@
+# Generated client for the Private Required Test webfunction package.
+# Source: https://example.test/package
+#
+# Wraps the real web_function gem (github.com/robinclart/web_function) -
+# every method here calls straight through to the real dynamic client.
+module WebFunctionClient
+  class PersonAttributes
+    def initialize: (untyped raw) -> void
+
+    def name: () -> String
+  end
+
+  Undefined: untyped
+
+  class Client
+    def initialize: (untyped real_client) -> void
+    def self.from_package_endpoint: (String url, ?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client
+
+    def get_person: (id: String) -> PersonAttributes
+
+    def call: (String endpoint_name, ?Hash[Symbol, untyped] args) -> untyped
+    def package: () -> untyped
+    def bearer_auth=: (String?) -> void
+    def version=: (String?) -> void
+    def pipeline=: (untyped) -> void
+  end
+end

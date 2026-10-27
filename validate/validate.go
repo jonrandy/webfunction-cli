@@ -119,6 +119,7 @@ func Run(pkg *webfunction.Package, url string) *Report {
 	v.checkDuplicateObjectNames()
 	v.checkVersioning()
 	v.checkObjectRefs()
+	v.checkGenerics()
 	v.checkBareReturns()
 	v.checkChoicesAndValues()
 	v.checkFlags()

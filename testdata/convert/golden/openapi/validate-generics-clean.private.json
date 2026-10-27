@@ -1,0 +1,528 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Generics Clean API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ],
+  "paths": {
+    "/get-comments": {
+      "post": {
+        "operationId": "getComments",
+        "summary": "get-comments",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Comment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-holders": {
+      "post": {
+        "operationId": "getHolders",
+        "summary": "get-holders",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/Holder"
+                      },
+                      {
+                        "$ref": "#/components/schemas/NestedHolder"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-threads": {
+      "post": {
+        "operationId": "getThreads",
+        "summary": "get-threads",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOfThread"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/list-optional-users": {
+      "post": {
+        "operationId": "listOptionalUsers",
+        "summary": "list-optional-users",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOfUserOrNull"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/list-users": {
+      "post": {
+        "operationId": "listUsers",
+        "summary": "list-users",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filter": {
+                    "$ref": "#/components/schemas/FilterOfStringInput"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOfUser"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/nested-pages": {
+      "post": {
+        "operationId": "nestedPages",
+        "summary": "nested-pages",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfPageOfUser"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/page-of-users": {
+      "post": {
+        "operationId": "pageOfUsers",
+        "summary": "page-of-users",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfArrayOfUser"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pairs": {
+      "post": {
+        "operationId": "pairs",
+        "summary": "pairs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PairOfNumber"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "post": {
+        "operationId": "users",
+        "summary": "users",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wrapped": {
+      "post": {
+        "operationId": "wrapped",
+        "summary": "wrapped",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WrapperOfString"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Comment": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "replies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Comment"
+            }
+          }
+        }
+      },
+      "FilterOfStringInput": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "Holder": {
+        "type": "object",
+        "properties": {
+          "inner": {
+            "$ref": "#/components/schemas/ListOfUser"
+          }
+        }
+      },
+      "ListOfListOfUser": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListOfUser"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      },
+      "ListOfThread": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Thread"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      },
+      "ListOfUser": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      },
+      "ListOfUserOrNull": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/User"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      },
+      "NestedHolder": {
+        "type": "object",
+        "properties": {
+          "deep": {
+            "$ref": "#/components/schemas/ListOfListOfUser"
+          }
+        }
+      },
+      "PageOfArrayOfUser": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          }
+        }
+      },
+      "PageOfPageOfUser": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PageOfUser"
+            }
+          }
+        }
+      },
+      "PageOfUser": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          }
+        }
+      },
+      "PairOfNumber": {
+        "type": "object",
+        "properties": {
+          "first": {
+            "type": "number"
+          },
+          "second": {
+            "type": "number"
+          }
+        }
+      },
+      "PairOfString": {
+        "type": "object",
+        "properties": {
+          "first": {
+            "type": "string"
+          },
+          "second": {
+            "type": "string"
+          }
+        }
+      },
+      "Thread": {
+        "type": "object",
+        "properties": {
+          "comments": {
+            "$ref": "#/components/schemas/ListOfThread"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "WrapperOfString": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pairs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PairOfString"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,510 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Generics Codegen Test",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ],
+  "paths": {
+    "/convert": {
+      "post": {
+        "operationId": "convert",
+        "summary": "convert",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payload": {
+                    "$ref": "#/components/schemas/BothOfStringInput"
+                  }
+                },
+                "required": [
+                  "payload"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BothOfNumber"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-holder": {
+      "post": {
+        "operationId": "getHolder",
+        "summary": "get-holder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Holder"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-wrapper": {
+      "post": {
+        "operationId": "getWrapper",
+        "summary": "get-wrapper",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WrapperOfString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/list-audit": {
+      "post": {
+        "operationId": "listAudit",
+        "summary": "list-audit",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfAudit"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/list-users": {
+      "post": {
+        "operationId": "listUsers",
+        "summary": "list-users",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "debug_trace": {
+                    "type": "boolean"
+                  },
+                  "filter": {
+                    "$ref": "#/components/schemas/FilterOfStringInput"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOfUser"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/list-users-or-null": {
+      "post": {
+        "operationId": "listUsersOrNull",
+        "summary": "list-users-or-null",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOfUserOrNull"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/page-of-arrays": {
+      "post": {
+        "operationId": "pageOfArrays",
+        "summary": "page-of-arrays",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfArrayOfUser"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/page-of-pages": {
+      "post": {
+        "operationId": "pageOfPages",
+        "summary": "page-of-pages",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfPageOfUser"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pairs": {
+      "post": {
+        "operationId": "pairs",
+        "summary": "pairs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PairOfNumber"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Audit": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
+      "BothOfNumber": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "number"
+          }
+        }
+      },
+      "BothOfStringInput": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FilterOfStringInput": {
+        "type": "object",
+        "properties": {
+          "operator": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "Holder": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "users": {
+            "$ref": "#/components/schemas/ListOfUser"
+          }
+        }
+      },
+      "ListOfUser": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          },
+          "total": {
+            "type": "number",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
+      "ListOfUserOrNull": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/User"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "total": {
+            "type": "number",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
+      "PageOfArrayOfUser": {
+        "type": "object",
+        "properties": {
+          "has_more": {
+            "type": "boolean"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          }
+        }
+      },
+      "PageOfAudit": {
+        "type": "object",
+        "properties": {
+          "has_more": {
+            "type": "boolean"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Audit"
+            }
+          }
+        }
+      },
+      "PageOfPageOfUser": {
+        "type": "object",
+        "properties": {
+          "has_more": {
+            "type": "boolean"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PageOfUser"
+            }
+          }
+        }
+      },
+      "PageOfUser": {
+        "type": "object",
+        "properties": {
+          "has_more": {
+            "type": "boolean"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          }
+        }
+      },
+      "PairOfNumber": {
+        "type": "object",
+        "properties": {
+          "first": {
+            "type": "number"
+          },
+          "second": {
+            "type": "number"
+          }
+        }
+      },
+      "PairOfString": {
+        "type": "object",
+        "properties": {
+          "first": {
+            "type": "string"
+          },
+          "second": {
+            "type": "string"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "recovery_code": {
+            "type": "string"
+          }
+        }
+      },
+      "WrapperOfString": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pair": {
+            "$ref": "#/components/schemas/PairOfString"
+          }
+        }
+      }
+    }
+  }
+}

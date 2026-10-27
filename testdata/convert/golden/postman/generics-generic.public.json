@@ -1,0 +1,254 @@
+{
+  "info": {
+    "name": "Generics Codegen Test",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "list-users",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"filter\": {\n    \"value\": \"\",\n    \"operator\": \"\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/list-users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "list-users"
+          ]
+        }
+      }
+    },
+    {
+      "name": "list-users-or-null",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/list-users-or-null",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "list-users-or-null"
+          ]
+        }
+      }
+    },
+    {
+      "name": "page-of-pages",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/page-of-pages",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "page-of-pages"
+          ]
+        }
+      }
+    },
+    {
+      "name": "page-of-arrays",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/page-of-arrays",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "page-of-arrays"
+          ]
+        }
+      }
+    },
+    {
+      "name": "pairs",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/pairs",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "pairs"
+          ]
+        }
+      }
+    },
+    {
+      "name": "convert",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"payload\": {\n    \"input\": \"\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/convert",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "convert"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get-holder",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/get-holder",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "get-holder"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get-wrapper",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/get-wrapper",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "get-wrapper"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.example.com"
+    }
+  ]
+}

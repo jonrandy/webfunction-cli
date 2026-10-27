@@ -1,0 +1,62 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Versioned Mismatch Example",
+    "version": "v3",
+    "x-webfunction-versions": [
+      "v1",
+      "v2"
+    ]
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ],
+  "paths": {
+    "/ping": {
+      "post": {
+        "operationId": "ping",
+        "summary": "ping",
+        "parameters": [
+          {
+            "name": "Api-Version",
+            "in": "header",
+            "description": "The package version to call against.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "v1",
+                "v2"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-webfunction-versioned": true
+}

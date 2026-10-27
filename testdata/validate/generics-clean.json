@@ -1,0 +1,56 @@
+{
+  "base_url": "https://api.example.com",
+  "name": "Generics Clean API",
+  "objects": [
+    { "name": "user", "attributes": [{ "name": "id", "type": "string" }] },
+    {
+      "name": "list",
+      "attributes": [
+        { "name": "total", "type": "number" },
+        { "name": "items", "type": [["T"]] }
+      ]
+    },
+    {
+      "name": "pair",
+      "attributes": [
+        { "name": "first", "type": "T" },
+        { "name": "second", "type": "T" }
+      ]
+    },
+    { "name": "page", "attributes": [{ "name": "results", "type": [["T"]] }] },
+    { "name": "filter", "arguments": [{ "name": "value", "type": "T", "flags": ["required"] }] },
+    { "name": "holder", "attributes": [{ "name": "inner", "type": { "object.list": "object.user" } }] },
+    { "name": "nested-holder", "attributes": [{ "name": "deep", "type": { "object.list": { "object.list": "object.user" } } }] },
+    {
+      "name": "comment",
+      "attributes": [
+        { "name": "message", "type": "string" },
+        { "name": "replies", "type": { "array": "object.comment" } }
+      ]
+    },
+    { "name": "thread", "attributes": [{ "name": "comments", "type": { "object.list": "object.thread" } }] },
+    {
+      "name": "wrapper",
+      "attributes": [
+        { "name": "pairs", "type": { "array": { "object.pair": "T" } } },
+        { "name": "items", "type": { "array": "T" } }
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "name": "list-users",
+      "returns": { "object.list": "object.user" },
+      "arguments": [{ "name": "filter", "type": { "object.filter": "string" } }]
+    },
+    { "name": "list-optional-users", "returns": { "object.list": ["object.user", "null"] }, "arguments": [] },
+    { "name": "nested-pages", "returns": { "object.page": { "object.page": "object.user" } }, "arguments": [] },
+    { "name": "pairs", "returns": [[{ "object.pair": "number" }]], "arguments": [] },
+    { "name": "get-holders", "returns": [["object.holder", "object.nested-holder"]], "arguments": [] },
+    { "name": "get-comments", "returns": { "array": "object.comment" }, "arguments": [] },
+    { "name": "get-threads", "returns": { "object.list": "object.thread" }, "arguments": [] },
+    { "name": "wrapped", "returns": { "object.wrapper": "string" }, "arguments": [] },
+    { "name": "page-of-users", "returns": { "object.page": { "array": "object.user" } }, "arguments": [] },
+    { "name": "users", "returns": { "array": "object.user" }, "arguments": [] }
+  ]
+}

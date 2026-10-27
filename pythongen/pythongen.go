@@ -98,6 +98,7 @@ import (
 
 	"github.com/webfunction-protocol/webfunction-go"
 
+	"wfn/generics"
 	"wfn/privatefilter"
 )
 
@@ -109,9 +110,14 @@ const LibraryReference = "webfunction (pip install webfunction)"
 // webfunction-python. Unlike every other target, this one takes no
 // namespace parameter - see the package doc comment, decision 12.
 //
+// Generic objects are expanded first (generics.Expand): every application
+// becomes an ordinary generated object such as ListOfUser, and the generic
+// templates are not emitted.
+//
 // Anything flagged "private" - endpoints, arguments, and attributes - is
 // left out of the generated code unless includePrivate is true.
 func Generate(pkg *webfunction.Package, sourceURL string, includePrivate bool) (string, error) {
+	pkg = generics.Expand(pkg)
 	if !includePrivate {
 		pkg = privatefilter.Apply(pkg)
 	}

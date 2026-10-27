@@ -1,0 +1,134 @@
+{
+  "info": {
+    "name": "Generics Convert Test",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "list-users",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"filter\": {\n    \"value\": \"\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/list-users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "list-users"
+          ]
+        }
+      }
+    },
+    {
+      "name": "list-optional-users",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/list-optional-users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "list-optional-users"
+          ]
+        }
+      }
+    },
+    {
+      "name": "nested-pages",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/nested-pages",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "nested-pages"
+          ]
+        }
+      }
+    },
+    {
+      "name": "pairs",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/pairs",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "pairs"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.example.com"
+    }
+  ]
+}

@@ -63,6 +63,7 @@ import (
 
 	"github.com/webfunction-protocol/webfunction-go"
 
+	"wfn/generics"
 	"wfn/privatefilter"
 )
 
@@ -75,9 +76,14 @@ const ImportPath = "github.com/webfunction-protocol/webfunction-go"
 // packageName) - the shared --namespace flag doesn't map onto Go's own
 // package-naming convention directly.
 //
+// Generic objects are expanded first (generics.Expand): every application
+// becomes an ordinary generated object such as ListOfUser, and the generic
+// templates are not emitted.
+//
 // Anything flagged "private" - endpoints, arguments, and attributes - is
 // left out of the generated code unless includePrivate is true.
 func Generate(pkg *webfunction.Package, sourceURL, namespace string, includePrivate bool) (string, error) {
+	pkg = generics.Expand(pkg)
 	pkgName := packageName(namespace)
 
 	if !includePrivate {

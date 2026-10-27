@@ -37,6 +37,10 @@ func schemaKeyName(raw string) string {
 		if part == "" {
 			continue
 		}
+		if keepsCasing(part) {
+			b.WriteString(part)
+			continue
+		}
 		lower := strings.ToLower(part)
 		b.WriteString(strings.ToUpper(lower[:1]))
 		b.WriteString(lower[1:])
@@ -49,6 +53,23 @@ func schemaKeyName(raw string) string {
 		name = "_" + name
 	}
 	return name
+}
+
+// keepsCasing reports whether a word is already mixed case with a leading
+// capital (ListOfUser, Page), as the names generated for generic
+// instantiations are. Such words are kept as written; all other words are
+// normalised to a leading capital followed by lower case.
+func keepsCasing(word string) bool {
+	runes := []rune(word)
+	if !unicode.IsUpper(runes[0]) {
+		return false
+	}
+	for _, r := range runes[1:] {
+		if unicode.IsLower(r) {
+			return true
+		}
+	}
+	return false
 }
 
 // splitWords splits on any run of characters that aren't letters or

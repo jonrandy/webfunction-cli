@@ -1,0 +1,40 @@
+# Generated client for the Clean Example API webfunction package.
+# Source: https://example.test/package
+#
+# Wraps the real web_function gem (github.com/robinclart/web_function) -
+# every method here calls straight through to the real dynamic client.
+module WebFunctionClient
+  class TypedPage[out Item]
+    include Enumerable[Item]
+
+    def initialize: (untyped real_page, Class? item_class) -> void
+    def page: () -> Array[Item]
+    def next?: () -> bool
+    def previous?: () -> bool
+    def next_page: () -> TypedPage[Item]?
+    def previous_page: () -> TypedPage[Item]?
+  end
+
+  class PersonAttributes
+    def initialize: (untyped raw) -> void
+
+    def id: () -> String
+    def name: () -> String
+  end
+
+  Undefined: untyped
+
+  class Client
+    def initialize: (untyped real_client) -> void
+    def self.from_package_endpoint: (String url, ?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client
+
+    def get_person: (id: String) -> PersonAttributes
+    def list_people: (?status: "active" | "inactive") -> TypedPage[untyped]
+
+    def call: (String endpoint_name, ?Hash[Symbol, untyped] args) -> untyped
+    def package: () -> untyped
+    def bearer_auth=: (String?) -> void
+    def version=: (String?) -> void
+    def pipeline=: (untyped) -> void
+  end
+end

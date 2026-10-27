@@ -1,0 +1,405 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Generics Flawed API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ],
+  "paths": {
+    "/bad-arg": {
+      "post": {
+        "operationId": "badArg",
+        "summary": "bad-arg",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bad-key": {
+      "post": {
+        "operationId": "badKey",
+        "summary": "bad-key",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collides": {
+      "post": {
+        "operationId": "collides",
+        "summary": "collides",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOfUser2"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/empty-app": {
+      "post": {
+        "operationId": "emptyApp",
+        "summary": "empty-app",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ghost-arg": {
+      "post": {
+        "operationId": "ghostArg",
+        "summary": "ghost-arg",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOfGhost"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/static-arg": {
+      "post": {
+        "operationId": "staticArg",
+        "summary": "static-arg",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/t-applied": {
+      "post": {
+        "operationId": "tApplied",
+        "summary": "t-applied",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOfAny"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/t-argument": {
+      "post": {
+        "operationId": "tArgument",
+        "summary": "t-argument",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "v": {
+                    "oneOf": [
+                      {},
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/t-return": {
+      "post": {
+        "operationId": "tReturn",
+        "summary": "t-return",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/unapplied": {
+      "post": {
+        "operationId": "unapplied",
+        "summary": "unapplied",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOfAny"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wrong-context": {
+      "post": {
+        "operationId": "wrongContext",
+        "summary": "wrong-context",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "m": {
+                    "$ref": "#/components/schemas/MixedOfStringInput"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Ghost": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "ListOfAny": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {}
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      },
+      "ListOfGhost": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ghost"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      },
+      "ListOfUser2": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      },
+      "MixedOfStringInput": {
+        "type": "object",
+        "properties": {
+          "plain": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

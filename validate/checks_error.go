@@ -144,6 +144,9 @@ func (v *validator) walkType(t webfunction.Type, ctx webfunction.ObjectContext, 
 		if alt.Of != nil {
 			v.walkType(*alt.Of, ctx, loc)
 		}
+		if alt.Arg != nil {
+			v.walkType(*alt.Arg, ctx, loc)
+		}
 	}
 }
 

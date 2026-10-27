@@ -1,0 +1,52 @@
+{
+  "info": {
+    "name": "Versioned Mismatch Example",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "ping",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Api-Version",
+            "value": "{{apiVersion}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/ping",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "ping"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.example.com"
+    },
+    {
+      "key": "apiVersion",
+      "value": "v3"
+    }
+  ]
+}

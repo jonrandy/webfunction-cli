@@ -1,0 +1,74 @@
+{
+  "info": {
+    "name": "Private Levels Test",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "internal-sync",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/internal-sync",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "internal-sync"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get-person",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"\",\n  \"debug\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/get-person",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "get-person"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.example.com"
+    }
+  ]
+}

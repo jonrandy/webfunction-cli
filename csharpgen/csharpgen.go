@@ -130,6 +130,7 @@ import (
 
 	"github.com/webfunction-protocol/webfunction-go"
 
+	"wfn/generics"
 	"wfn/privatefilter"
 )
 
@@ -144,9 +145,14 @@ const LibraryReference = "webfunction-csharp (the WebFunction namespace)"
 // csharpNamespace) - the shared --namespace flag maps onto C#'s own
 // dot-separated namespace convention, PascalCased per segment.
 //
+// Generic objects are expanded first (generics.Expand): every application
+// becomes an ordinary generated object such as ListOfUser, and the generic
+// templates are not emitted.
+//
 // Anything flagged "private" - endpoints, arguments, and attributes - is
 // left out of the generated code unless includePrivate is true.
 func Generate(pkg *webfunction.Package, sourceURL, namespace string, includePrivate bool) (string, error) {
+	pkg = generics.Expand(pkg)
 	ns := csharpNamespace(namespace)
 
 	if !includePrivate {

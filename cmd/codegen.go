@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/webfunction-protocol/webfunction-go"
 	"path/filepath"
 	"strings"
 	"wfn/csharpgen"
@@ -55,6 +54,9 @@ Flags (all required):
   -o           Output file to write the generated code to
 
 Flags (optional):
+  --file       Read the package from this local JSON file instead of fetching it.
+               --url is still required: the generated client fetches the package
+               from it at runtime.
   --namespace  Namespace/module for the generated class (currently for: php, go, java, csharp, ruby). Default: ` + defaultNamespace + `
                Not used by --target python: Python's own import system
                already provides namespacing, so there's nothing to set.
@@ -67,7 +69,8 @@ the same path with its extension replaced by .rbs (e.g. -o client.rb also
 writes client.rbs alongside it).
 
 Example:
-  wfn codegen --target java --url https://example.com/some-package -o client.java`
+  wfn codegen --target java --url https://example.com/some-package -o client.java
+  wfn codegen --target java --url https://example.com/some-package --file ./package.json -o client.java`
 }
 
 func (c *CodegenCommand) Run(args []string) error {
@@ -75,6 +78,7 @@ func (c *CodegenCommand) Run(args []string) error {
 
 	target := fs.String("target", "", "target language ("+fmt.Sprint(validTargets)+")")
 	url := fs.String("url", "", "URL of the webfunction package")
+	file := fs.String("file", "", "path to a webfunction package JSON file (instead of --url)")
 	output := fs.String("o", "", "output file name")
 	namespace := fs.String("namespace", defaultNamespace, "namespace/module for the generated class (currently for: php, go, java, csharp, ruby)")
 	private := fs.Bool("private", false, "include endpoints, arguments, and attributes flagged private (currently for: js, php, python, java, csharp, go, ruby)")
@@ -101,17 +105,18 @@ func (c *CodegenCommand) Run(args []string) error {
 		return fmt.Errorf("invalid --target %q, must be one of: %v", *target, validTargets)
 	}
 
-	client, err := webfunction.FromPackageEndpoint(*url, webfunction.Options{})
+	loaded, err := loadPackage(*url, *file)
 	if err != nil {
-		return fmt.Errorf("fetching package: %w", err)
+		return err
 	}
-	pkg := client.Package()
+	pkg := loaded.pkg
 
 	name := pkg.Name
 	if name == "" {
 		name = "(unnamed package)"
 	}
-	fmt.Printf("Fetched %s (%d endpoint(s)) from %s\n", name, len(pkg.Endpoints), *url)
+	fmt.Printf("%s %s (%d endpoint(s)) from %s\n", loaded.verb, name, len(pkg.Endpoints), loaded.from)
+	warnGenerics(warnWriter, pkg, loaded.from)
 	if *private {
 		if contains(privateTargets, *target) {
 			fmt.Println("Including private endpoints, arguments, and attributes (--private)")
