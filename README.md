@@ -29,7 +29,7 @@ wfn <command> [arguments]
 | Command   | Description                                              |
 |-----------|------------------------------------------------------------|
 | `help`    | Show general help, or help for a specific command           |
-| `codegen` | Generate a typed client for a webfunction package (targets: java, go, php, js, csharp, ruby, python; `--private` to include private endpoints, arguments, and attributes; `--file` to read the package from a local JSON file, though `--url` is still required); generics are expanded into concrete types |
+| `codegen` | Generate a typed client for a webfunction package (targets: java, go, php, js, csharp, ruby, python; `--private` to include private endpoints, arguments, and attributes; `--file` to read the package from a local JSON file, though `--url` is still required; `--namespace` to set the namespace, package or module of the generated client); generics are expanded into concrete types |
 | `convert` | Convert a webfunction package to another document format (targets: openapi, postman; `--url` or `--file` for the package; `--private` to include private endpoints, arguments, and attributes; generics are expanded into concrete types) |
 | `validate` | Check a webfunction package's structure, flags, and generics usage, writing a report (formats: json, markdown, html; `--url` or `--file` for the package) |
 
@@ -58,6 +58,24 @@ report's `package_url`.
 wfn convert --target openapi --file ./package.json -o openapi.json
 wfn validate --file ./package.json -o report.html --format html
 wfn codegen --target go --url https://example.com/pkg --file ./package.json -o client.go
+```
+
+### Namespace
+
+`codegen --namespace <name>` sets the namespace, package or module the
+generated client lives in. It defaults to `WebFunctionClient`. Each target maps
+it onto its own convention, and `js` and `python` don't use it:
+
+| Target   | `--namespace` becomes                                              | Example                                       |
+|----------|--------------------------------------------------------------------|-----------------------------------------------|
+| `php`    | a PHP namespace: backslash-separated, each segment a valid identifier (otherwise `codegen` fails) | `Acme\Billing` gives `namespace Acme\Billing;` |
+| `go`     | a Go package name: lowercased, punctuation removed                  | `Acme.Billing_API` gives `package acmebillingapi` |
+| `java`   | a Java package: dot-separated, lowercased, punctuation removed      | `Acme.Billing_API` gives `package acme.billingapi;` |
+| `csharp` | a C# namespace: dot-separated, each segment PascalCased             | `Acme.Billing_API` gives `namespace Acme.BillingApi;` |
+| `ruby`   | the Ruby module name, used exactly as written (nest with `::`)      | `Acme::Billing` gives `module Acme::Billing` |
+
+```sh
+wfn codegen --target csharp --url https://example.com/pkg --namespace Acme.Billing -o Client.cs
 ```
 
 ## Generics
