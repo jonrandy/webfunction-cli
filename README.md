@@ -72,7 +72,7 @@ it onto its own convention, and `js` and `python` don't use it:
 | `go`     | a Go package name: lowercased, punctuation removed                  | `Acme.Billing_API` gives `package acmebillingapi` |
 | `java`   | a Java package: dot-separated, lowercased, punctuation removed      | `Acme.Billing_API` gives `package acme.billingapi;` |
 | `csharp` | a C# namespace: dot-separated, each segment PascalCased             | `Acme.Billing_API` gives `namespace Acme.BillingApi;` |
-| `ruby`   | the Ruby module name, used exactly as written (nest with `::`)      | `Acme::Billing` gives `module Acme::Billing` |
+| `ruby`   | a Ruby constant path: `::`-separated, each name starting with a capital letter (otherwise `codegen` fails); each name becomes a nested `module` | `Acme::Billing` gives `module Acme` containing `module Billing` |
 
 ```sh
 wfn codegen --target csharp --url https://example.com/pkg --namespace Acme.Billing -o Client.cs
