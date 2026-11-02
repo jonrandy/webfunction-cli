@@ -420,14 +420,21 @@ func writeClientClass(b *strings.Builder, moduleName, sourceURL string, infos []
 	b.WriteString("  class Client\n")
 	b.WriteString("    # The package endpoint this client was generated from.\n")
 	b.WriteString("    SOURCE_URL = " + rubyStringLiteral(sourceURL) + "\n\n")
-	b.WriteString("    def initialize(real_client)\n      @real_client = real_client\n    end\n\n")
+	b.WriteString("    # Pass a real ::WebFunction::Client to wrap it (handy in tests), or pass nothing\n")
+	b.WriteString("    # to connect to SOURCE_URL, the endpoint this file was generated from.\n")
+	b.WriteString("    def initialize(real_client = nil, bearer_auth: nil, version: nil, pipelined: false)\n")
+	b.WriteString("      if real_client\n")
+	b.WriteString("        if bearer_auth || version || pipelined\n")
+	b.WriteString("          raise ::ArgumentError, \"bearer_auth, version and pipelined apply only when no real_client is given\"\n")
+	b.WriteString("        end\n\n")
+	b.WriteString("        @real_client = real_client\n")
+	b.WriteString("      else\n")
+	b.WriteString("        @real_client = ::WebFunction::Client.from_package_endpoint(SOURCE_URL, bearer_auth: bearer_auth, version: version, pipelined: pipelined)\n")
+	b.WriteString("      end\n")
+	b.WriteString("    end\n\n")
 	b.WriteString("    # @param url [String]\n")
 	b.WriteString("    def self.from_package_endpoint(url, bearer_auth: nil, version: nil, pipelined: false)\n")
 	b.WriteString("      new(::WebFunction::Client.from_package_endpoint(url, bearer_auth: bearer_auth, version: version, pipelined: pipelined))\n")
-	b.WriteString("    end\n\n")
-	b.WriteString("    # Builds a client for SOURCE_URL, the endpoint this file was generated from.\n")
-	b.WriteString("    def self.new_client(bearer_auth: nil, version: nil, pipelined: false)\n")
-	b.WriteString("      from_package_endpoint(SOURCE_URL, bearer_auth: bearer_auth, version: version, pipelined: pipelined)\n")
 	b.WriteString("    end\n\n")
 
 	for _, info := range infos {
@@ -535,9 +542,8 @@ func writeClientSig(b *strings.Builder, infos []endpointGen) {
 	b.WriteString("  Undefined: untyped\n\n")
 	b.WriteString("  class Client\n")
 	b.WriteString("    SOURCE_URL: String\n\n")
-	b.WriteString("    def initialize: (untyped real_client) -> void\n")
-	b.WriteString("    def self.from_package_endpoint: (String url, ?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client\n")
-	b.WriteString("    def self.new_client: (?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client\n\n")
+	b.WriteString("    def initialize: (?untyped real_client, ?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> void\n")
+	b.WriteString("    def self.from_package_endpoint: (String url, ?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client\n\n")
 
 	for _, info := range infos {
 		var kwParts []string

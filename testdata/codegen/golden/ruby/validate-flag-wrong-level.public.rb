@@ -18,18 +18,23 @@ module WebFunctionClient
     # The package endpoint this client was generated from.
     SOURCE_URL = "https://example.test/package"
 
-    def initialize(real_client)
-      @real_client = real_client
+    # Pass a real ::WebFunction::Client to wrap it (handy in tests), or pass nothing
+    # to connect to SOURCE_URL, the endpoint this file was generated from.
+    def initialize(real_client = nil, bearer_auth: nil, version: nil, pipelined: false)
+      if real_client
+        if bearer_auth || version || pipelined
+          raise ::ArgumentError, "bearer_auth, version and pipelined apply only when no real_client is given"
+        end
+
+        @real_client = real_client
+      else
+        @real_client = ::WebFunction::Client.from_package_endpoint(SOURCE_URL, bearer_auth: bearer_auth, version: version, pipelined: pipelined)
+      end
     end
 
     # @param url [String]
     def self.from_package_endpoint(url, bearer_auth: nil, version: nil, pipelined: false)
       new(::WebFunction::Client.from_package_endpoint(url, bearer_auth: bearer_auth, version: version, pipelined: pipelined))
-    end
-
-    # Builds a client for SOURCE_URL, the endpoint this file was generated from.
-    def self.new_client(bearer_auth: nil, version: nil, pipelined: false)
-      from_package_endpoint(SOURCE_URL, bearer_auth: bearer_auth, version: version, pipelined: pipelined)
     end
 
     def do_thing(id: Undefined)

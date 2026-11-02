@@ -11,9 +11,9 @@ import (
 
 // The generated Ruby client must be usable without repeating the --url it
 // was generated from, as the Go and Python clients already are: Client
-// carries the URL as SOURCE_URL and Client.new_client builds a ready-to-use
-// client from it. from_package_endpoint(url, ...) stays for callers who
-// want a different address.
+// carries the URL as SOURCE_URL, and Client.new with no real client builds
+// one from it. from_package_endpoint(url, ...) stays for callers who want a
+// different address, and Client.new(real_client) stays for injection.
 
 func generateRubyFor(t *testing.T, url string) (rb, rbs string) {
 	t.Helper()
@@ -32,8 +32,8 @@ func TestRubyClientBakesSourceURL(t *testing.T) {
 	rb, rbs := generateRubyFor(t, goldenSourceURL)
 	for _, want := range []string{
 		`SOURCE_URL = "` + goldenSourceURL + `"`,
-		"def self.new_client(bearer_auth: nil, version: nil, pipelined: false)",
-		"from_package_endpoint(SOURCE_URL, bearer_auth: bearer_auth, version: version, pipelined: pipelined)",
+		"def initialize(real_client = nil, bearer_auth: nil, version: nil, pipelined: false)",
+		"::WebFunction::Client.from_package_endpoint(SOURCE_URL, bearer_auth: bearer_auth, version: version, pipelined: pipelined)",
 		"def self.from_package_endpoint(url, bearer_auth: nil, version: nil, pipelined: false)",
 	} {
 		if !strings.Contains(rb, want) {
@@ -42,12 +42,15 @@ func TestRubyClientBakesSourceURL(t *testing.T) {
 	}
 	for _, want := range []string{
 		"SOURCE_URL: String",
-		"def self.new_client: (?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client",
+		"def initialize: (?untyped real_client, ?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> void",
 		"def self.from_package_endpoint: (String url, ?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client",
 	} {
 		if !strings.Contains(rbs, want) {
 			t.Errorf("generated .rbs is missing %q", want)
 		}
+	}
+	if strings.Contains(rb, "new_client") || strings.Contains(rbs, "new_client") {
+		t.Error("new_client must not be generated: Client.new is the constructor")
 	}
 }
 
@@ -61,10 +64,11 @@ func TestRubySourceURLIsNotInterpolated(t *testing.T) {
 	}
 }
 
-// Loads the generated file with real Ruby and checks the constant and the
-// constructor exist, and that the URL comes back byte-for-byte. Runs only
-// when WFN_RUBY_LIB points at the webfunction-ruby gem's lib directory.
-func TestRubyGeneratedClientLoadsWithSourceURL(t *testing.T) {
+// Loads the generated file with real Ruby, stubs the gem's
+// from_package_endpoint, and checks what Client.new does with and without a
+// real client. Runs only when WFN_RUBY_LIB points at the webfunction-ruby
+// gem's lib directory.
+func TestRubyGeneratedClientConstructor(t *testing.T) {
 	lib := os.Getenv("WFN_RUBY_LIB")
 	if lib == "" {
 		t.Skip("set WFN_RUBY_LIB to the webfunction-ruby lib directory to run this test")
@@ -85,12 +89,33 @@ func TestRubyGeneratedClientLoadsWithSourceURL(t *testing.T) {
 	if err := os.WriteFile(path, []byte(rb), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	script := `require ARGV[0]; c = WebFunctionClient::Client; puts c::SOURCE_URL; puts c.respond_to?(:new_client)`
+	script := `
+require ARGV[0]
+c = WebFunctionClient::Client
+puts c::SOURCE_URL
+seen = nil
+::WebFunction::Client.define_singleton_method(:from_package_endpoint) { |u, **o| seen = [u, o]; :real }
+c.new(bearer_auth: "tok", version: "2")
+puts seen[0], seen[1][:bearer_auth], seen[1][:version], seen[1][:pipelined]
+fake = Object.new
+def fake.call(name, args = {})
+  "called #{name}"
+end
+seen = nil
+injected = c.new(fake)
+puts seen.inspect
+puts injected.call("ping")
+begin
+  c.new(fake, bearer_auth: "x")
+rescue ArgumentError => e
+  puts e.class
+end
+`
 	got, err := exec.Command("ruby", "-I", abs, "-e", script, path).CombinedOutput()
 	if err != nil {
 		t.Fatalf("ruby failed: %v\n%s", err, got)
 	}
-	if want := url + "\ntrue\n"; string(got) != want {
+	if want := url + "\n" + url + "\ntok\n2\nfalse\nnil\ncalled ping\nArgumentError\n"; string(got) != want {
 		t.Errorf("ruby printed %q, want %q", got, want)
 	}
 }
