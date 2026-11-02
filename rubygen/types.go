@@ -323,8 +323,12 @@ func rbsStringLiteral(s string) string {
 	return `"` + s + `"`
 }
 
+// rubyInterpolation escapes the three sequences Ruby interpolates inside a
+// double-quoted string ("#{...}", "#$gvar", "#@ivar"); RBS has no such rule.
+var rubyInterpolation = strings.NewReplacer("#{", `\#{`, "#$", `\#$`, "#@", `\#@`)
+
 func rubyStringLiteral(s string) string {
-	return rbsStringLiteral(s) // identical escaping rules
+	return rubyInterpolation.Replace(rbsStringLiteral(s))
 }
 
 func dedupe(ss []string) []string {

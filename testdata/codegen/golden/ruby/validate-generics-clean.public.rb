@@ -212,6 +212,9 @@ module WebFunctionClient
   Undefined = ::Object.new.freeze
 
   class Client
+    # The package endpoint this client was generated from.
+    SOURCE_URL = "https://example.test/package"
+
     def initialize(real_client)
       @real_client = real_client
     end
@@ -219,6 +222,11 @@ module WebFunctionClient
     # @param url [String]
     def self.from_package_endpoint(url, bearer_auth: nil, version: nil, pipelined: false)
       new(::WebFunction::Client.from_package_endpoint(url, bearer_auth: bearer_auth, version: version, pipelined: pipelined))
+    end
+
+    # Builds a client for SOURCE_URL, the endpoint this file was generated from.
+    def self.new_client(bearer_auth: nil, version: nil, pipelined: false)
+      from_package_endpoint(SOURCE_URL, bearer_auth: bearer_auth, version: version, pipelined: pipelined)
     end
 
     def list_users(filter: Undefined)

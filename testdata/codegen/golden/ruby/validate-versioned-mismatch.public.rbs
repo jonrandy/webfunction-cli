@@ -7,8 +7,11 @@ module WebFunctionClient
   Undefined: untyped
 
   class Client
+    SOURCE_URL: String
+
     def initialize: (untyped real_client) -> void
     def self.from_package_endpoint: (String url, ?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client
+    def self.new_client: (?bearer_auth: String?, ?version: String?, ?pipelined: bool) -> Client
 
     def ping: () -> bool
 

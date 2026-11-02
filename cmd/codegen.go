@@ -31,7 +31,7 @@ var validTargets = []string{"java", "go", "php", "js", "csharp", "ruby", "python
 var privateTargets = []string{"js", "php", "python", "java", "csharp", "go", "ruby"}
 
 // defaultNamespace is --namespace's default, used by any target that
-// needs one (php, go, java, csharp).
+// needs one (php, go, java, csharp, ruby).
 const defaultNamespace = "WebFunctionClient"
 
 // CodegenCommand implements "wfn codegen ...".
