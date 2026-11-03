@@ -4,3 +4,4 @@ report.*
 sample.json
 converted.json
 wfn
+codegen_tests/
