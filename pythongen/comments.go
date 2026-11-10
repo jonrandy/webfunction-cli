@@ -19,8 +19,7 @@ func docLines(docs string) []string {
 	rawLines := strings.Split(docs, "\n")
 	lines := make([]string, 0, len(rawLines))
 	for _, l := range rawLines {
-		l = strings.ReplaceAll(strings.TrimRight(l, " \t\r"), `\`, `\\`)
-		lines = append(lines, strings.ReplaceAll(l, `"""`, `\"\"\"`))
+		lines = append(lines, escapeDocText(strings.TrimRight(l, " \t\r")))
 	}
 	return lines
 }
@@ -76,6 +75,27 @@ func joinDocLines(lines []string) string {
 	for _, l := range lines {
 		if l = strings.TrimSpace(l); l != "" {
 			parts = append(parts, l)
+		}
+	}
+	return strings.Join(parts, " ")
+}
+
+// escapeDocText makes s safe inside a non-raw triple-quoted docstring: every
+// backslash is escaped, then any embedded `"""` (backslashes first, or the
+// ones added for `"""` would be doubled).
+func escapeDocText(s string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(s, `\`, `\\`), `"""`, `\"\"\"`)
+}
+
+// singleLine joins the lines of s with single spaces, trimming each line and
+// dropping empty ones, for text that must stay on one line: a
+// "#" comment would otherwise end at the first newline and turn the rest of
+// the text into code.
+func singleLine(s string) string {
+	var parts []string
+	for _, p := range strings.FieldsFunc(s, func(r rune) bool { return r == '\n' || r == '\r' }) {
+		if p = strings.TrimSpace(p); p != "" {
+			parts = append(parts, p)
 		}
 	}
 	return strings.Join(parts, " ")
