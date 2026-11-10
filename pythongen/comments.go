@@ -5,9 +5,12 @@ import "strings"
 // docLines splits a docs string (markdown, per the wire spec) into lines
 // safe to place inside a triple-quoted docstring. Python docstrings need
 // no per-line escaping the way C#'s XML doc comments do (no "<"/"&"
-// concerns) - the only real hazard is a literal `"""` sequence inside the
-// docs text itself, which would prematurely close the docstring; that's
-// neutralized by escaping any embedded `"""` to `\"\"\"`.
+// concerns), but the docstrings are not raw strings, so two things in the
+// docs text itself need neutralizing: every backslash is escaped to `\\`
+// (otherwise "\d" warns, "\n" or "\x41" silently change the text, and a
+// trailing backslash joins the next line), and any embedded `"""`, which
+// would prematurely close the docstring, is escaped to `\"\"\"`. The
+// backslashes must be escaped first, or the ones added for `"""` get doubled.
 func docLines(docs string) []string {
 	docs = strings.TrimSpace(docs)
 	if docs == "" {
@@ -16,7 +19,8 @@ func docLines(docs string) []string {
 	rawLines := strings.Split(docs, "\n")
 	lines := make([]string, 0, len(rawLines))
 	for _, l := range rawLines {
-		lines = append(lines, strings.ReplaceAll(strings.TrimRight(l, " \t\r"), `"""`, `\"\"\"`))
+		l = strings.ReplaceAll(strings.TrimRight(l, " \t\r"), `\`, `\\`)
+		lines = append(lines, strings.ReplaceAll(l, `"""`, `\"\"\"`))
 	}
 	return lines
 }
