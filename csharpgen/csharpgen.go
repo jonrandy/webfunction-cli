@@ -396,7 +396,7 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 		line := "<exception cref=\"global::WebFunction.Exceptions.BadRequestException\">code " + csharpStringLiteral(code)
 		errDocs := docLines(e.Docs)
 		if len(errDocs) > 0 {
-			line += " - " + errDocs[0]
+			line += " - " + joinDocLines(errDocs)
 		}
 		line += "</exception>"
 		extra = append(extra, line)

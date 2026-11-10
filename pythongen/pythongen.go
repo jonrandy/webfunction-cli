@@ -439,7 +439,7 @@ func writeMethod(b *strings.Builder, ep webfunction.Endpoint, methodName string,
 		line := "webfunction.BadRequestError: code " + pyStr(code)
 		errDocs := docLines(e.Docs)
 		if len(errDocs) > 0 {
-			line += " - " + errDocs[0]
+			line += " - " + joinDocLines(errDocs)
 		}
 		extra = append(extra, line)
 	}

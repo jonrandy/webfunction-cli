@@ -461,7 +461,7 @@ func writeClientMethod(b *strings.Builder, info endpointGen) {
 		}
 		line := "    # May raise WebFunction::BadRequestError with code " + code
 		if dl := docLines(e.Docs); len(dl) > 0 {
-			line += " - " + dl[0]
+			line += " - " + joinDocLines(dl)
 		}
 		b.WriteString(line + "\n")
 	}
