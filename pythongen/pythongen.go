@@ -26,6 +26,11 @@
 //     allow float values as typing.Literal members, so a float-typed
 //     choices field can't use Literal at all - see buildLiteralField in
 //     dataclasses.go.
+//     When the type is an array, the choices are its allowed items (per
+//     the spec): the field is a List of the Literal, an explicit null among
+//     them makes the items Optional, and an array mixed with a scalar is a
+//     real Union of the two. A fractional number still cannot be a Literal
+//     member, so such a field keeps the type it would have without choices.
 //  4. Numeric refinements collapse to plain int or float - Python has no
 //     real sized-integer or single-precision-float types at all (ints are
 //     arbitrary precision, floats are always the equivalent of a 64-bit
