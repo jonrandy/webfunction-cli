@@ -130,10 +130,10 @@ class SetTagsArgs:
     """SetTagsArgs holds the arguments for the set-tags endpoint.
     """
 
-    tags: Optional[Literal["red", "green", "blue"]] = field(default=None, metadata={"wire_name": "tags"})
+    tags: Optional[List[Literal["red", "green", "blue"]]] = field(default=None, metadata={"wire_name": "tags"})
     """One of: "red", "green", "blue".
     """
-    bad_tags: Optional[Literal["red", 42]] = field(default=None, metadata={"wire_name": "bad-tags"})
+    bad_tags: Optional[List[Literal["red", 42]]] = field(default=None, metadata={"wire_name": "bad-tags"})
     """One of: "red", 42, "red".
     """
 

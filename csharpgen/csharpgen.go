@@ -38,7 +38,12 @@
 //     a nullable-annotated property without ever calling the converter) -
 //     it instead marks the field nullable regardless of what the
 //     endpoint's own required/nullable flag says. Same reasoning as
-//     javagen's identical decision.
+//     javagen's identical decision. When the type is an array, the
+//     choices are its allowed items (per the spec): the field is a List
+//     of the enum, the wire type follows the items (types.go's
+//     itemWireType), and items of mixed kinds, or an array mixed with a
+//     scalar, get no enum and keep the type they would have without
+//     choices.
 //  4. Optional Arguments and nullable Attributes both make a field
 //     nullable via C#'s own "?" annotation (Nullable<T> for value types,
 //     nullable-reference-type annotation for reference types) - ONE

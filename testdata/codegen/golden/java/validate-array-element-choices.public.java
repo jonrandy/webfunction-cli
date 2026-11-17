@@ -57,41 +57,17 @@ public final class Client {
     }
 
     /**
-     * SetTagsArgsBadTagsChoice is the closed set of legal values for "bad-tags".
-     */
-    public enum SetTagsArgsBadTagsChoice {
-        RED("red"),
-        VALUE_42(42L),
-        RED_2("red");
-
-        private final String wireValue;
-
-        SetTagsArgsBadTagsChoice(String wireValue) { this.wireValue = wireValue; }
-
-        @com.fasterxml.jackson.annotation.JsonValue
-        public String toWireValue() { return wireValue; }
-
-        @com.fasterxml.jackson.annotation.JsonCreator
-        public static SetTagsArgsBadTagsChoice fromWireValue(String wireValue) {
-            for (SetTagsArgsBadTagsChoice v : values()) {
-                if (v.wireValue.equals(wireValue)) return v;
-            }
-            throw new IllegalArgumentException("unknown value: " + wireValue);
-        }
-    }
-
-    /**
      * SetTagsArgs holds the arguments for the set-tags endpoint.
      */
     @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
     public record SetTagsArgs(
-        @Nullable SetTagsArgsTagsChoice tags,
-        @Nullable SetTagsArgsBadTagsChoice badTags
+        @Nullable List<SetTagsArgsTagsChoice> tags,
+        @Nullable List<String> badTags
     ) {
         @com.fasterxml.jackson.annotation.JsonCreator
         public SetTagsArgs(
-            @com.fasterxml.jackson.annotation.JsonProperty("tags") SetTagsArgsTagsChoice tags,
-            @com.fasterxml.jackson.annotation.JsonProperty("bad-tags") SetTagsArgsBadTagsChoice badTags
+            @com.fasterxml.jackson.annotation.JsonProperty("tags") List<SetTagsArgsTagsChoice> tags,
+            @com.fasterxml.jackson.annotation.JsonProperty("bad-tags") List<String> badTags
         ) {
             this.tags = tags;
             this.badTags = badTags;
