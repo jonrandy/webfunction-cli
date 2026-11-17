@@ -360,7 +360,7 @@ func writeClientCore(b *strings.Builder, pkg *webfunction.Package, sourceURL str
 	b.WriteString("    private Client(org.webfunction.Client raw) {\n        this.raw = raw;\n    }\n\n")
 
 	writeJavadoc(b, "    ", []string{"Builds a Client, fetching the package definition from its source URL."})
-	b.WriteString("    public static Client newClient(org.webfunction.Options opts) {\n")
+	b.WriteString("    public static Client createNew(org.webfunction.Options opts) {\n")
 	b.WriteString("        return new Client(org.webfunction.Client.fromPackageEndpoint(SOURCE_URL, opts));\n")
 	b.WriteString("    }\n\n")
 

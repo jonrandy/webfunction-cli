@@ -78,7 +78,7 @@ public final class Client {
     /**
      * Builds a Client, fetching the package definition from its source URL.
      */
-    public static Client newClient(org.webfunction.Options opts) {
+    public static Client createNew(org.webfunction.Options opts) {
         return new Client(org.webfunction.Client.fromPackageEndpoint(SOURCE_URL, opts));
     }
 
