@@ -392,7 +392,7 @@ func writeClientClass(b *strings.Builder, pkg *webfunction.Package, sourceURL st
 	b.WriteString("        self._raw = raw\n\n")
 
 	b.WriteString("    @classmethod\n")
-	b.WriteString("    " + asyncKw + "def new_client(cls, *, bearer_auth: Optional[str] = None, version: Optional[str] = None) -> \"" + className + "\":\n")
+	b.WriteString("    " + asyncKw + "def create_new(cls, *, bearer_auth: Optional[str] = None, version: Optional[str] = None) -> \"" + className + "\":\n")
 	writeDocstring(b, "        ", []string{"Builds a " + className + ", fetching the package definition from its source URL."})
 	b.WriteString("        raw = " + awaitKw + rawClientType + ".from_package_endpoint(cls._SOURCE_URL, bearer_auth=bearer_auth, version=version)\n")
 	b.WriteString("        return cls(raw)\n\n")
