@@ -346,7 +346,7 @@ func writeClientCore(b *strings.Builder, sourceURL string) {
 	b.WriteString("    private Client(global::WebFunction.Client raw)\n    {\n        this.raw = raw;\n    }\n\n")
 
 	writeSummary(b, "    ", []string{"Builds a Client, fetching the package definition from its source URL."})
-	b.WriteString("    public static async Task<Client> NewClientAsync(string? bearerAuth = null, string? version = null)\n    {\n")
+	b.WriteString("    public static async Task<Client> CreateNew(string? bearerAuth = null, string? version = null)\n    {\n")
 	b.WriteString("        var raw = await global::WebFunction.Client.FromPackageEndpointAsync(SourceUrl, bearerAuth: bearerAuth, version: version).ConfigureAwait(false);\n")
 	b.WriteString("        return new Client(raw);\n")
 	b.WriteString("    }\n\n")
