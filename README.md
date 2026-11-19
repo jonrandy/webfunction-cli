@@ -21,8 +21,11 @@ go build -o wfn .
 wfn                 # show general help
 wfn help            # same as above
 wfn help <command>  # show detailed help for a specific command
+wfn --version       # print the version and exit
 wfn <command> [arguments]
 ```
+
+`--version` can appear anywhere on the command line; when it does, wfn prints its version and does nothing else. The version is set in `cmd/version.go`, and a release build can override it with `go build -ldflags "-X wfn/cmd.Version=1.2.3" -o wfn .`
 
 ## Commands
 
@@ -163,3 +166,4 @@ See `testdata/convert/README.md` for details.
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
